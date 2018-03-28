@@ -14,9 +14,9 @@ from keras.metrics import categorical_crossentropy
 from keras.preprocessing.image import ImageDataGenerator
 from keras.layers.convolutional import *
 
-# Project
-import data
-import visualization
+# Project Modules
+from modules import data
+from modules import visualization
 
 model_file_path = os.path.join(os.path.dirname(__file__), 'models/medical_trial_mode.h5')
 
@@ -145,6 +145,3 @@ def demo():
   visualization.plotConfusionMatrix(test_labels, rounded_predictions, plot_labels=cm_plot_labels, plot_title='Confusion Matrix')
 
   plt.show()
-
-
-
