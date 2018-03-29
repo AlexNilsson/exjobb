@@ -1,20 +1,17 @@
 <template>
   <div id="app">
-    <!--<LatentSpaceExplorer/>-->
-    <mnist-vae/>
+    <latent-space-explorer/>
   </div>
 </template>
 
 <script>
 import LatentSpaceExplorer from './components/LatentSpaceExplorer'
-import MnistVae from './components/MnistVae'
 
 
 export default {
   name: 'App',
   components: {
-    LatentSpaceExplorer,
-    MnistVae
+    LatentSpaceExplorer
   }
 }
 </script>

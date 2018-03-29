@@ -2,7 +2,7 @@
   <div class="model-status text-xs-center py-5 px-5 mb-3 elevation-3">
     <div class="title mx-3 primary--text">{{ message }}{{ value }}%</div>
     <div class="progress-wrapper">
-      <v-progress-linear v-model="value" height="6" color="primary"></v-progress-linear>
+      <b-progress :value="value" :max="max" show-progress variant="success" animated></b-progress>
     </div>
   </div>
 </template>
@@ -18,7 +18,8 @@ export default {
 
   data() {
     return {
-      value: 0
+      value: 0,
+      max: 100
     }
   },
 
