@@ -1,2 +1,8 @@
+import KerasJS from 'keras-js'
+
 console.log('app is running')
-console.log('app is running3')
+
+const model = new KerasJS.Model({
+  filepath: 'path/to/model.bin',
+  gpu: true
+})

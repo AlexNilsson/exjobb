@@ -4,20 +4,25 @@
   "description": "Webb application for exjobb project",
   "main": "server.js",
   "scripts": {
-    "dev": "concurrently \"webpack --config ./app/webpack.config.js --mode development --watch\" \"npm run start\"",
-    "build": "webpack --config ./app/webpack.config.js --mode production",
+    "dev": "concurrently --kill-others \"webpack --config ./app/webpack.config.js --watch\" \"npm run start\"",
+    "build": "webpack --config ./app/webpack.config.js",
     "start": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Alexander Nilsson, Martin Thönners",
   "license": "ISC",
   "dependencies": {
+    "keras-js": "^1.0.3",
     "nodemon": "^1.17.2",
-    "npm": "^5.8.0"
+    "npm": "^5.8.0",
+    "vue": "^2.5.16"
   },
   "devDependencies": {
     "concurrently": "^3.5.1",
     "webpack": "^4.3.0",
     "webpack-cli": "^2.0.13"
+  },
+  "standard": {
+    "globals": []
   }
 }
