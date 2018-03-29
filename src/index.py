@@ -31,41 +31,43 @@ test_batches = ImageDataGenerator().flow_from_directory(test_path, target_size=(
 #test_batches.class_indices
 
 # fine tuining of existing model
-vgg16_model = keras.applications.vgg16.VGG16()
-vgg16_model.summary()
+def demo3():
+  vgg16_model = keras.applications.vgg16.VGG16()
+  vgg16_model.summary()
 
-# Convert model to sequential
-model = Sequential()
-for layer in vgg16_model.layers:
-  model.add(layer)
+  # Convert model to sequential
+  model = Sequential()
+  for layer in vgg16_model.layers:
+    model.add(layer)
 
 # Customize last layer
 
-model.layers.pop()
+  model.layers.pop()
 
 # Locking existing layers; These should not be trained; treat as constant
-for layer in model.layers:
-  layer.trainable = False
+  for layer in model.layers:
+    layer.trainable = False
 
-# Add last custom layer on top
-model.add(Dense(2, activation='softmax'))
+  # Add last custom layer on top
+  model.add(Dense(2, activation='softmax'))
 
-model.compile(Adam(lr=0.0001), loss='categorical_crossentropy', metrics=['accuracy'])
+  model.compile(Adam(lr=0.0001), loss='categorical_crossentropy', metrics=['accuracy'])
 
-model.fit_generator(train_batches, steps_per_epoch=4, validation_data=valid_batches, validation_steps=4, epochs=5, verbose=2)
+  model.fit_generator(train_batches, steps_per_epoch=4, validation_data=valid_batches, validation_steps=4, epochs=1, verbose=2)
 
-# Plot prediction
-test_imgs, test_labels = next(test_batches)
-visualization.plotImages(test_imgs, test_labels)
+  # Plot prediction
+  test_imgs, test_labels = next(test_batches)
+  visualization.plotImages(test_imgs, test_labels)
 
-# predict
-predictions = model.predict_generator(test_batches, steps=1, verbose=0)
+  # predict
+  predictions = model.predict_generator(test_batches, steps=1, verbose=0)
+  print(predictions)
 
-visualization.plotConfusionMatrix(test_labels[:,0], predictions[:,0])
+  visualization.plotConfusionMatrix(test_labels[:,0], np.round(predictions[:,0]), plot_labels=['dog','cat'])
 
-plt.show()
+  plt.show()
 
-
+demo3()
 
 
 def demo2():
@@ -82,7 +84,7 @@ def demo2():
 
   model.compile(Adam(lr=0.0001), loss='categorical_crossentropy', metrics=['accuracy'])
 
-  model.fit_generator(train_batches, steps_per_epoch=4, validation_data=valid_batches, validation_steps=4, epochs=5, verbose=2)
+  model.fit_generator(train_batches, steps_per_epoch=4, validation_data=valid_batches, validation_steps=4, epochs=1, verbose=2)
 
 
 
