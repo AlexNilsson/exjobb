@@ -18,10 +18,12 @@ import os
 #---------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------
 """ user preferences """
-pixels_amount = 200 #must be dividable by 8
-batches_size= 25 #the trainingset must be dividable with batches_size
-n_epoch = 1
-hidden_1_size =4 #the flat dense layers before and after z
+pixels_amount = 40 #must be dividable by 8
+batches_size= 50 #the trainingset must be dividable with batches_size
+n_epoch = 2
+hidden_1_size =200 
+hidden_2_size = 100 #the flat dense layers before and after z
+dropout_amount = 0.2
 z_layer_size = 2
 
 input_layer_size = pixels_amount*pixels_amount
@@ -76,7 +78,6 @@ x_test_noisy = np.clip(x_test_noisy, 0.0, 1.0) """
 #---------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------
 
-
 #encoder model, to encode input into latent variable
 """ Convolution layers """
 conv_1 = Conv2D(16, (3, 3), activation='relu', padding='same')
@@ -87,10 +88,11 @@ conv_3 = Conv2D(8, (3, 3), activation='relu', padding='same')
 pooling_3 = MaxPooling2D((2, 2), padding='same')
 
 """ Flat layers """
-flat_1 =Dense(hidden_1_size, activation='relu')
+flat_hidden_1 =Dense(hidden_1_size, activation='relu')
+flat_hidden_2 = Dense(hidden_2_size, activation='relu')
 flat_2 = Dense(z_layer_size, activation='linear')
 flat_3 = Dense(z_layer_size, activation='linear')
-
+dropout_layer_encoder = Dropout(dropout_amount, input_shape=(hidden_1_size,)) #can be placed between the flat dense layers if needed
 """ Structure """
 inputs = Input(shape=(pixels_amount, pixels_amount, 1))
 x = conv_1(inputs)
@@ -101,9 +103,11 @@ x = conv_3(x)
 convoluted = pooling_3(x)
 
 convoluted_flat = Flatten()(convoluted)
-h_q =flat_1(convoluted_flat)
-mu = flat_2(h_q)
-log_sigma = flat_3(h_q)
+drop_encoder = dropout_layer_encoder(convoluted_flat)
+h_q =flat_hidden_1(drop_encoder)
+h_q_2 = flat_hidden_2(h_q)
+mu = flat_2(h_q_2)
+log_sigma = flat_3(h_q_2)
 encoder = Model(inputs, mu)
 
 print('encoder summary')
@@ -137,7 +141,8 @@ z = Lambda(sample_z)([mu, log_sigma])
 
 #decoder -- P(X|z) (generator) model, to generate new data given variable z
 """ Layers """
-dropout_layer = Dropout(0.2, input_shape=(hidden_1_size,)) #can be placed between the flat dense layers if needed
+decoder_hidden_2 = Dense(hidden_2_size, activation='relu')
+dropout_layer_decoder = Dropout(dropout_amount, input_shape=(hidden_2_size,)) #can be placed between the flat dense layers if needed
 decoder_hidden = Dense(hidden_1_size, activation='relu')
 d_h = Dense(_x*_x*_z, activation='relu')
 d_h_reshaped = Reshape((_x,_x,_z))
@@ -151,7 +156,9 @@ decon_4 = Conv2D(1, (3, 3), activation='sigmoid', padding='same')
 
 """ Structure """
 d_in = Input(shape=(z_layer_size,))
-x = decoder_hidden(d_in)
+x = decoder_hidden_2(d_in)
+x = dropout_layer_decoder(x)
+x = decoder_hidden(x)
 x = d_h(x)
 x = d_h_reshaped(x)
 x = decon_1(x)
@@ -167,7 +174,9 @@ decoder = Model(d_in, decode_output)
 
 #VAE model, for reconstruction and training
 """ Structure """
-x = decoder_hidden(z)
+x = decoder_hidden_2(z)
+x = decoder_hidden(x)
+x = dropout_layer_decoder(x)
 x = d_h(x)
 x = d_h_reshaped(x)
 x = decon_1(x)
@@ -193,8 +202,17 @@ def vae_loss(inputs_flat, outputs_flat):
 	# compute the KL loss
 	kl_loss = - 0.5 * K.sum(1 + log_sigma - K.square(mu) - K.square(K.exp(log_sigma)), axis=-1)
 	# return the average loss over all images in batch
-	total_loss = K.mean(reconstruction_loss + kl_loss)    
+	total_loss = K.mean(reconstruction_loss + kl_loss*0.5)    
 	return total_loss
+
+""" def vae_loss(inputs_flat, outputs_flat):
+	# compute the average MSE error, then scale it up, ie. simply sum on all axes
+	reconstruction_loss = K.sum(K.binary_crossentropy(outputs_flat, inputs_flat))
+	# compute the KL loss
+	kl_loss = - 0.5 * K.sum(1 + log_sigma - K.square(mu) - K.exp(log_sigma), axis=-1)
+	# return the average loss over all images in batch
+	total_loss = K.mean(reconstruction_loss + kl_loss)    
+	return total_loss """
 
 print('vae loss')
 print(vae_loss)
@@ -250,6 +268,9 @@ for i, yi in enumerate(grid_x):
 plt.figure(figsize=(10, 10))
 plt.imshow(figure)
 
+plt.savefig(
+  "./VariationalAE/progress_images/epoch{}-h1_size{}-h2_size{}-dropout{}.jpg".format(n_epoch, hidden_1_size, hidden_2_size, dropout_amount)
+  )
 plt.show()
 #---------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------
