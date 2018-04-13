@@ -18,8 +18,8 @@ import os
 #----------------------------------------------
 """ user preferences """
 pixels_amount = 32 #must be dividable by 8
-batches_size= 50 #the trainingset must be dividable with batches_size
-n_epoch = 10
+batches_size= 100 #the trainingset must be dividable with batches_size
+n_epoch = 100
 hidden_1_size =200 
 hidden_2_size = 100 #the flat dense layers before and after z
 dropout_amount = 0.2
@@ -226,7 +226,7 @@ print('encoder')
 encoder.summary()
 print('decoder')
 decoder.summary()
-plot_model(vae, to_file='./VariationalAE/vae_model_vis.png', show_shapes=True, show_layer_names=True, rankdir='TB')
+#plot_model(vae, to_file='./VariationalAE/vae_model_vis.png', show_shapes=True, show_layer_names=True, rankdir='TB')
 #---------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------
 #training

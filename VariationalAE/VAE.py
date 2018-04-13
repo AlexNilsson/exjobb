@@ -19,8 +19,8 @@ import os
 #----------------------------------------------
 """ user preferences """
 pixels_amount = 40 #must be dividable by 8
-batches_size= 50 #the trainingset must be dividable with batches_size
-n_epoch = 2
+batches_size= 100 #the trainingset must be dividable with batches_size
+n_epoch = 200
 hidden_1_size =200 
 hidden_2_size = 100 #the flat dense layers before and after z
 dropout_amount = 0.2
