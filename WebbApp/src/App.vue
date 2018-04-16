@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <latent-space-explorer/>
+    <latent-space-explorer hasWebGL="hasWebGL"/>
   </div>
 </template>
 
@@ -12,6 +12,11 @@ export default {
   name: 'App',
   components: {
     LatentSpaceExplorer
+  },
+  data(){
+    return{
+      hasWebGL: true,
+    }
   }
 }
 </script>
