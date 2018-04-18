@@ -3,77 +3,82 @@
 from keras.layers import Input, Dense, Lambda, Dropout, Conv2D, MaxPooling2D, UpSampling2D, Flatten, Reshape
 from keras.models import Model
 from keras.objectives import binary_crossentropy
-from keras.callbacks import LearningRateScheduler, ModelCheckpoint, Callback
+from keras.callbacks import LearningRateScheduler, ModelCheckpoint
 from keras.preprocessing.image import ImageDataGenerator
 from PIL import Image
 
-import cv2 as c
+import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
 import keras.backend as K
 import tensorflow as tf
 import os
 
-#---------------------------------------------------------------------------------------------------------------------------------
-#----------------------------------------------
+from callbacks import PlotLatentSpaceProgress
+from processing import preProcessImages
+
 """ user preferences """
+
+DATASET = 'shapes'
+load_saved_weights = False
 pixels_amount = 40 #must be dividable by 8
 batches_size= 100 #the trainingset must be dividable with batches_size
 n_epoch = 100
-hidden_1_size =200 
+hidden_1_size =200
 hidden_2_size = 100 #the flat dense layers before and after z
 dropout_amount = 0.4
 z_layer_size = 2
-
-input_layer_size = pixels_amount*pixels_amount
-img_rows, img_cols = pixels_amount, pixels_amount #what size images are reshaped to
-#---------------------------------------------------------------------------------------------------------------------------------
-#----------------------------------------------
+noise_factor = 0
+save_model_when_done = False
 
 
-#---------------------------------------------------------------------------------------------------------------------------------
-#----------------------------------------------
-#defining and reshaping data
-train_images_path = os.path.join(os.path.dirname(__file__), '../data/shapes/shape')
-train_images_resized_path = os.path.join(os.path.dirname(__file__), '../data/shapes/shape_resized')
+PATH_TO_THIS_DIR = os.path.dirname(__file__)
+PATH_TO_DATA_DIR = os.path.join(PATH_TO_THIS_DIR, '../data')
+PATH_TO_DATASET = os.path.join(PATH_TO_DATA_DIR, DATASET)
+PATH_TO_SAVED_WEIGHTS = os.path.join(PATH_TO_THIS_DIR, 'saved_weights')
 
-#resizing and grayscale of training images 
-listing = os.listdir(train_images_path)
-num_samples = np.size(listing)
+# data paths
+train_images_path = os.path.join(PATH_TO_DATASET, 'shape')
+train_images_resized_path = os.path.join(PATH_TO_DATASET, 'shape_resized')
 
-for file in listing:
-    im = Image.open(train_images_path + '\\' + file)
-    img = im.resize((img_rows,img_cols))
-    gray = img.convert('L')
-    gray.save(train_images_resized_path + '\\' + file ) #+ ".jpg"
+# pre process data
+preProcessImages(train_images_path, train_images_resized_path,
+  convert_to_grayscale=True,
+  resize_to=(pixels_amount, pixels_amount)
+)
 
-imlist = os.listdir(train_images_resized_path)
-im1= np.array(Image.open(train_images_resized_path + '\\' + imlist[0])) #open one image to get size
-m,n = im1.shape[0:2] #size of image
-imnbr = len(imlist) #number of images
-#matrix to store flattened images
-immatrix = np.array([np.array(Image.open(train_images_resized_path + '\\' + im2)).flatten()
-    for im2 in imlist], 'f')
+# matrix of flattened images
+image_matrix = np.array([
+  np.array(
+    Image.open(
+      os.path.join(train_images_resized_path, img)
+    )
+  ).flatten() for img in os.listdir(train_images_resized_path)
+], 'f')
 
-print(immatrix.shape)
+x_train = image_matrix.astype('float32') / 255.
+# adapt this if using `channels_first` image data format
+x_train = np.reshape(x_train, (len(x_train), pixels_amount, pixels_amount, 1))
 
-x_train = immatrix
-x_test = immatrix
-x_train = x_train.astype('float32') / 255.
-x_test = x_test.astype('float32') / 255.
-x_train = np.reshape(x_train, (len(x_train), pixels_amount, pixels_amount, 1))  # adapt this if using `channels_first` image data format
-x_test = np.reshape(x_test, (len(x_test), pixels_amount, pixels_amount, 1))  # adapt this if using `channels_first` image data format
+x_test = x_train
+
+x_train_ref = x_train
+x_test_ref = x_test
+
 print(x_train.shape)
 print(x_test.shape)
 
-#if noisy images is wanted 
-""" 
-noise_factor = 0.4
-x_train_noisy = x_train + noise_factor * np.random.normal(size=x_train.shape) 
-x_test_noisy = x_test + noise_factor * np.random.normal(size=x_test.shape)
+#if noisy images is wanted
 
-x_train_noisy = np.clip(x_train_noisy, 0.0, 1.0)
-x_test_noisy = np.clip(x_test_noisy, 0.0, 1.0) """
+if noise_factor > 0:
+  x_train_noisy = x_train + noise_factor * np.random.normal(size=x_train.shape)
+  x_test_noisy = x_test + noise_factor * np.random.normal(size=x_test.shape)
+
+  x_train_noisy = np.clip(x_train_noisy, 0.0, 1.0)
+  x_test_noisy = np.clip(x_test_noisy, 0.0, 1.0)
+  x_train = x_train_noisy
+  x_test = x_test_noisy
+
 #---------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------
 
@@ -118,24 +123,17 @@ _x = int(convShape[1])
 _z = int(convShape[3])
 
 
-#---------------------------------------------------------------------------------------------------------------------------------
-#----------------------------------------------
-#reparametrization trick to sample z 
-def sample_z(args):
-    mu, log_sigma = args
-    eps = K.random_normal(shape=(K.shape(mu)[0], z_layer_size), mean=0., stddev=1.)
-    return mu + K.exp(log_sigma / 2) * eps
 
-""" def sample_z(mu, log_sigma):
-    # we sample from the standard normal a matrix of batch_size * latent_size (taking into account minibatches)
-    eps = K.random_normal(shape=(K.shape(mu)[0], z_layer_size), mean=0, stddev=1)
-    # sampling from Z~N(μ, σ^2) is the same as sampling from μ + σX, X~N(0,1)
-    return mu + K.exp(log_sigma) * eps """
+def sample_z(args):
+  mu, log_sigma = args
+  print(log_sigma)
+  # we sample from the standard normal a matrix of batch_size * latent_size (taking into account minibatches)
+  eps = K.random_normal(shape=(K.shape(mu)[0], z_layer_size), mean=0, stddev=1)
+  # sampling from Z~N(μ, σ^2) is the same as sampling from μ + σX, X~N(0,1)
+  return mu + K.exp(log_sigma) * eps
 
 #sample z Q(z|X)
 z = Lambda(sample_z)([mu, log_sigma])
-#---------------------------------------------------------------------------------------------------------------------------------
-#----------------------------------------------
 
 
 #decoder -- P(X|z) (generator) model, to generate new data given variable z
@@ -187,18 +185,17 @@ x = upsamp_3(x)
 outputs = decon_4(x)
 vae = Model(inputs, outputs)
 
-
 #---------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------
-#to load weights
-""" 
-before_weight_load = vae.get_weights()
-vae.load_weights('./VariationalAE/saved_weights/weight.hdf5', by_name=False)
-after_weight_load = vae.get_weights()
-print('before_weight_load')
-print(before_weight_load)
-print('after_weight_load')
-print(after_weight_load) """
+# load saved weights
+if load_saved_weights:
+  before_weight_load = vae.get_weights()
+  vae.load_weights(os.path.join(PATH_TO_SAVED_WEIGHTS, 'weight.hdf5'), by_name=False)
+  after_weight_load = vae.get_weights()
+  print('before_weight_load')
+  print(before_weight_load)
+  print('after_weight_load')
+  print(after_weight_load)
 #---------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------
 
@@ -214,15 +211,19 @@ def vae_loss(inputs_flat, outputs_flat):
 	# compute the KL loss
 	kl_loss = - 0.5 * K.sum(1 + log_sigma - K.square(mu) - K.square(K.exp(log_sigma)), axis=-1)
 	# return the average loss over all images in batch
-	total_loss = K.mean(reconstruction_loss + kl_loss*0.5)    
+	total_loss = K.mean(reconstruction_loss + kl_loss*0.5)
 	return total_loss
 
-print('vae loss')
-print(vae_loss)
+""" def vae_loss(inputs_flat, outputs_flat):
+	# compute the average MSE error, then scale it up, ie. simply sum on all axes
+	reconstruction_loss = K.sum(K.binary_crossentropy(outputs_flat, inputs_flat))
+	# compute the KL loss
+	kl_loss = - 0.5 * K.sum(1 + log_sigma - K.square(mu) - K.exp(log_sigma), axis=-1)
+	# return the average loss over all images in batch
+	total_loss = K.mean(reconstruction_loss + kl_loss)
+	return total_loss """
 
-
-#---------------------------------------------------------------------------------------------------------------------------------
-#----------------------------------------------
+print('vae loss: {}'.format(vae_loss))
 
 #models summary
 print('vae')
@@ -232,92 +233,34 @@ encoder.summary()
 print('decoder')
 decoder.summary()
 
-#---------------------------------------------------------------------------------------------------------------------------------
-#----------------------------------------------
 #training
 vae.compile(optimizer='adam', loss=vae_loss)
 
-#---------------------------------------------------------------------------------------------------------------------------------
-#----------------------------------------------
-#Callback functions to plot and save images and weights
-class z_sampling_progress(Callback):
- def on_epoch_begin(self, epoch, logs):
-    n = 20  # figure with nxn images
-    visualisation_size = pixels_amount
-    figure = np.zeros((visualisation_size * n, visualisation_size * n))
-    # sample n points within [linspace range] standard deviations
-    grid_x = np.linspace(-1, 1, n)
-    grid_y = np.linspace(-1, 1, n)
-    
+latent_space_progress = PlotLatentSpaceProgress(
+  model = decoder,
+  tiling = 20,
+  tile_size = pixels_amount,
+  zoom = 1,
+  show_plot = True,
+  save_plot = True,
+  path_to_save_directory = os.path.join(PATH_TO_THIS_DIR, 'epoch_plots'),
+  save_name = 'h1_size{}-h2_size{}-dropout{}.jpg'.format(hidden_1_size, hidden_2_size, dropout_amount)
+  )
 
-    for i, yi in enumerate(grid_x):
-        for j, xi in enumerate(grid_y):
-            z_sample = np.array([[xi, yi]])
-            x_decoded = decoder.predict(z_sample)
-            visualisation_image = x_decoded[0].reshape(visualisation_size, visualisation_size)
-            figure[i * visualisation_size: (i + 1) * visualisation_size,
-                j * visualisation_size: (j + 1) * visualisation_size] = visualisation_image
-    c.imshow('./VariationalAE/epoch_plots/tmp', figure)
-    c.waitKey(1)
-    figure_to_file = figure*255 #reshape to get the right range when saving image to file
-    figure_to_file = figure_to_file.astype('uint8')
-    name_of_image = './VariationalAE/epoch_plots/{}.jpg'.format(epoch)
-    c.imwrite(name_of_image, figure_to_file)
-    def on_epoch_end(self, epoch, logs):
-        c.destroyAllWindows()
+weights_checkpoint_callback = ModelCheckpoint(filepath = os.path.join(PATH_TO_SAVED_WEIGHTS, 'weight.hdf5'), verbose=1, save_best_only=True, save_weights_only=True)
 
-sampling_progress_callback = z_sampling_progress()
-weights_checkpoint_callback = ModelCheckpoint(filepath='./VariationalAE/saved_weights/weight.hdf5', verbose=1, save_best_only=True, save_weights_only=True)
-
-#weights_checkpoint = ModelCheckpoint(filepath='./VariationalAE/saved_weights/weight-{epoch:02d}-{val_loss:.2f}.hdf5', verbose=1, save_best_only=True)
-
-vae.fit(x_train, x_train,
+vae.fit(x_train, x_train_ref,
         shuffle=True,
         epochs=n_epoch,
         batch_size=batches_size,
-        validation_data=(x_test, x_test),
-        callbacks=[sampling_progress_callback, weights_checkpoint_callback])
-
-
-#---------------------------------------------------------------------------------------------------------------------------------
-#----------------------------------------------
-#saving model and weights
-""" 
-vae.save('vae_model.h5')
-vae.save_weights('vae_weights.h5')
-decoder.save_weights('decoder_weights.h5')
-encoder.save_weights('encoder_weights.h5')
-decoder.save('decoder_model.h5')
- """
-#---------------------------------------------------------------------------------------------------------------------------------
-#----------------------------------------------
-# visualisation
-""" n = 20  # figure with 15x15 images
-visualisation_size = pixels_amount
-figure = np.zeros((visualisation_size * n, visualisation_size * n))
-# we will sample n points within [linspace range] standard deviations
-grid_x = np.linspace(-1, 1, n)
-grid_y = np.linspace(-1, 1, n)
-
-for i, yi in enumerate(grid_x):
-    for j, xi in enumerate(grid_y):
-        z_sample = np.array([[xi, yi]])
-        x_decoded = decoder.predict(z_sample)
-        visualisation_image = x_decoded[0].reshape(visualisation_size, visualisation_size)
-        figure[i * visualisation_size: (i + 1) * visualisation_size,
-               j * visualisation_size: (j + 1) * visualisation_size] = visualisation_image
-
-print(visualisation_image)
-print(visualisation_image.shape)
-print(figure)
-plt.figure(figsize=(10, 10))
-plt.imshow(figure)
-
-plt.savefig(
-  "./VariationalAE/progress_images/samples{}-epoch{}-h1_size{}-h2_size{}-dropout{}.jpg".format(n, n_epoch, hidden_1_size, hidden_2_size, dropout_amount)
-  )
-plt.show() """
-
+        validation_data=(x_test, x_test_ref),
+        callbacks=[latent_space_progress, weights_checkpoint_callback])
 
 #---------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------
+if save_model_when_done:
+  vae.save(os.path.join(PATH_TO_THIS_DIR, 'vae_model.h5'))
+  vae.save_weights(os.path.join(PATH_TO_THIS_DIR,'vae_weights.h5'))
+  decoder.save_weights(os.path.join(PATH_TO_THIS_DIR,'decoder_weights.h5'))
+  encoder.save_weights(os.path.join(PATH_TO_THIS_DIR,'encoder_weights.h5'))
+  decoder.save(os.path.join(PATH_TO_THIS_DIR,'decoder_model.h5'))
