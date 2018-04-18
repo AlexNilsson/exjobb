@@ -5,12 +5,12 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Python: Dev Server",
+      "name": "Python: Current File",
       "type": "python",
       "request": "launch",
       "stopOnEntry": false,
       "pythonPath": "${config:python.pythonPath}",
-      "program": "${workspaceRoot}/index.py",
+      "program": "${file}",
       "cwd": "${workspaceFolder}",
       "env": {},
       "envFile": "${workspaceFolder}/.env",
@@ -19,12 +19,12 @@
       ]
     },
     {
-      "name": "Python: Current File",
+      "name": "Python: Dev Server",
       "type": "python",
       "request": "launch",
-      "stopOnEntry": true,
+      "stopOnEntry": false,
       "pythonPath": "${config:python.pythonPath}",
-      "program": "${file}",
+      "program": "${workspaceRoot}/index.py",
       "cwd": "${workspaceFolder}",
       "env": {},
       "envFile": "${workspaceFolder}/.env",
