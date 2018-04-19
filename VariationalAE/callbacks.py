@@ -4,6 +4,8 @@ import cv2 as cv
 from keras.callbacks import Callback
 from visualization import plotLatentSpace2D
 
+import config as C
+
 class PlotLatentSpaceProgress(Callback):
   def __init__(self, model, tiling=15, tile_size = 40, zoom = 1, show_plot=True, save_plot=True, path_to_save_directory='./epoch_plots', save_name='image'):
     self.plot = lambda : plotLatentSpace2D(model, tiling = tiling, tile_size = tile_size, zoom = zoom, show_plot=show_plot )
@@ -12,8 +14,7 @@ class PlotLatentSpaceProgress(Callback):
     self.save_name = save_name
 
   def on_epoch_begin(self, epoch, logs):
-
-    if epoch % 10 == 0:
+    if epoch % C.PLOT_LATENT_SPACE_EVERY == 0:
       latentSpacePlot = self.plot()
 
       if self.save_plot:
