@@ -7,7 +7,9 @@ import config as C
 class VAE:
   """ Defines the VAE Architecture"""
   def __init__(self):
-    self.inputs = Input(shape=(C.IMG_SIZE, C.IMG_SIZE, 1))
+    channels = 3 if C.COLOR_MODE == 'rgb' else 1
+
+    self.inputs = Input(shape=(C.IMG_SIZE, C.IMG_SIZE, channels))
     self.encoder = self.buildEncoder(self.inputs)
     self.decoder = self.buildDecoder()
     self.model = self.buildModel()
@@ -17,11 +19,17 @@ class VAE:
     # returns: ( mu(input_tensor), log_sigma(input_tensor) )
     x = input_tensor
 
-    x = Conv2D(16, (3, 3), activation='relu', padding='same')(x)
+    x = Conv2D(64, (7, 7), activation='relu', padding='same')(x)
     x = MaxPooling2D((2, 2), padding='same')(x)
-    x = Conv2D(8, (3, 3), activation='relu', padding='same')(x)
+    x = Conv2D(64, (5, 5), activation='relu', padding='same')(x)
     x = MaxPooling2D((2, 2), padding='same')(x)
-    x = Conv2D(8, (3, 3), activation='relu', padding='same')(x)
+    x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
+    x = MaxPooling2D((2, 2), padding='same')(x)
+    x = Conv2D(256, (3, 3), activation='relu', padding='same')(x)
+    x = MaxPooling2D((2, 2), padding='same')(x)
+    x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
+    x = MaxPooling2D((2, 2), padding='same')(x)
+    x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
     x = MaxPooling2D((2, 2), padding='same')(x)
     convoluted = x
 
@@ -29,12 +37,14 @@ class VAE:
     self.convShape = convoluted.shape
 
     x = Flatten()(x)
-    x = Dropout(C.DROPUT_AMOUNT, input_shape=(C.HIDDEN_1_SIZE,))(x)
-    x = Dense(C.HIDDEN_1_SIZE, activation='relu')(x)
-    x = Dense(C.HIDDEN_2_SIZE, activation='relu')(x)
+    x = Dropout(C.DROPUT_AMOUNT, input_shape=(300,))(x)
+    x = Dense(300, activation='sigmoid')(x)
+    x = Dense(200, activation='sigmoid')(x)
+    x = Dense(100, activation='sigmoid')(x)
+    x = Dense(20, activation='sigmoid')(x)
 
-    mu = Dense(C.Z_LAYER_SIZE, activation='linear')(x)
-    log_sigma = Dense(C.Z_LAYER_SIZE, activation='linear')(x)
+    mu = Dense(C.Z_LAYER_SIZE, activation='sigmoid')(x)
+    log_sigma = Dense(C.Z_LAYER_SIZE, activation='sigmoid')(x)
 
     encoder = Model(input_tensor, [mu, log_sigma])
 
@@ -49,16 +59,24 @@ class VAE:
     _y = int(self.convShape[2])
     _z = int(self.convShape[3])
 
-    x = Dense(C.HIDDEN_2_SIZE, activation='relu')(x)
-    x = Dense(C.HIDDEN_1_SIZE, activation='relu')(x)
-    x = Dropout(C.DROPUT_AMOUNT, input_shape=(C.HIDDEN_1_SIZE,))(x)
+    x = Dense(20, activation='sigmoid')(x)
+    x = Dense(100, activation='sigmoid')(x)
+    x = Dense(200, activation='sigmoid')(x)
+    x = Dense(300, activation='sigmoid')(x)
+    x = Dropout(C.DROPUT_AMOUNT, input_shape=(300,))(x)
     x = Dense(_x*_y*_z, activation='relu')(x)
     x = Reshape((_x,_y,_z))(x)
-    x = Conv2D(8, (3, 3), activation='relu', padding='same')(x)
+    x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
     x = UpSampling2D((2, 2))(x)
-    x = Conv2D(8, (3, 3), activation='relu', padding='same')(x)
+    x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
     x = UpSampling2D((2, 2))(x)
-    x = Conv2D(16, (3, 3), activation='relu', padding='same')(x)
+    x = Conv2D(256, (3, 3), activation='relu', padding='same')(x)
+    x = UpSampling2D((2, 2))(x)
+    x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
+    x = UpSampling2D((2, 2))(x)
+    x = Conv2D(64, (5, 5), activation='relu', padding='same')(x)
+    x = UpSampling2D((2, 2))(x)
+    x = Conv2D(64, (7, 7), activation='relu', padding='same')(x)
     x = UpSampling2D((2, 2))(x)
     x = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(x)
 

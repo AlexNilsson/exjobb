@@ -74,8 +74,8 @@ latent_space_progress = PlotLatentSpaceProgress(
   tiling = C.LATENT_SPACE_TILING,
   tile_size = C.IMG_SIZE,
   zoom = 1, # Standard deviation, #TODO: Rename
-  show_plot = True,
-  save_plot = True,
+  show_plot = C.SHOW_LATENT_PLOT,
+  save_plot = C.SAVE_LATENT_PLOT,
   path_to_save_directory = os.path.join(PATH_TO_THIS_DIR, 'epoch_plots'),
   save_name = 'h1_size{}-h2_size{}-dropout{}'.format(C.HIDDEN_1_SIZE, C.HIDDEN_2_SIZE, C.DROPUT_AMOUNT)
 )
@@ -94,11 +94,11 @@ vae.fit_generator(
   epochs = C.EPOCHS,
   steps_per_epoch = math.floor(N_DATA/C.BATCH_SIZE),
   validation_data = val_data_pair_generator,
-  validation_steps = math.floor(N_DATA/C.BATCH_SIZE),
+  validation_steps = math.ceil((N_DATA/C.BATCH_SIZE)/10),
   shuffle = True,
-  callbacks = [latent_space_progress],
+  callbacks = [latent_space_progress, weights_checkpoint_callback],
   use_multiprocessing = False,
-  verbose = C.TRAIN_VERBOSITY,
+  verbose = C.TRAIN_VERBOSITY
 )
 
 # Save model on completion
