@@ -37,13 +37,13 @@ val_data_pair_generator = getDataPairGenerator(PATH_TO_DATASET)
 VAE = architecture.VAE()
 
 # Encoder Model
-encoder = VAE.getEncoder()
+encoder = VAE.encoder
 
 # Decoder Model
-decoder = VAE.getDecoder()
+decoder = VAE.decoder
 
 # VAE Model
-vae = VAE.getModel()
+vae = VAE.model
 
 # Load saved weights
 if C.LOAD_SAVED_WEIGHTS:
@@ -71,10 +71,10 @@ vae.compile(optimizer = 'adam', loss = VAE.loss_function)
 # Training Callback: Latent space progress
 latent_space_progress = PlotLatentSpaceProgress(
   model = decoder,
-  tiling = 20,
+  tiling = C.LATENT_SPACE_TILING,
   tile_size = C.IMG_SIZE,
-  zoom = 1,
-  show_plot = False,
+  zoom = 1, # Standard deviation, #TODO: Rename
+  show_plot = True,
   save_plot = True,
   path_to_save_directory = os.path.join(PATH_TO_THIS_DIR, 'epoch_plots'),
   save_name = 'h1_size{}-h2_size{}-dropout{}'.format(C.HIDDEN_1_SIZE, C.HIDDEN_2_SIZE, C.DROPUT_AMOUNT)
@@ -96,7 +96,7 @@ vae.fit_generator(
   validation_data = val_data_pair_generator,
   validation_steps = math.floor(N_DATA/C.BATCH_SIZE),
   shuffle = True,
-  callbacks = [latent_space_progress, weights_checkpoint_callback],
+  callbacks = [latent_space_progress],
   use_multiprocessing = False,
   verbose = C.TRAIN_VERBOSITY,
 )

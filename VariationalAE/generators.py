@@ -7,6 +7,7 @@ import config as C
 # Returns (x_batch, y_batch)
 def data_pair_generator(generator):
   for batch in generator:
+    batch = batch / 255
     batch_ref = batch
     if C.NOISE_FACTOR > 0:
       batch_ref = batch_ref + C.NOISE_FACTOR * np.random.normal(size=batch_ref.shape)
@@ -16,7 +17,8 @@ def getDataPairGenerator(path_to_dataset):
   data_augmentor = ImageDataGenerator(
     zoom_range = C.ZOOM_RANGE,
     channel_shift_range = C.CHANNEL_SHIFT_RANGE,
-    horizontal_flip = C.HORIZONTAL_FLIP
+    horizontal_flip = C.HORIZONTAL_FLIP,
+    data_format = 'channels_last'
   )
 
   data_generator = data_augmentor.flow_from_directory(

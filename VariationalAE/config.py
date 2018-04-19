@@ -2,20 +2,21 @@
 PRINT_MODEL_SUMMARY = True
 TRAIN_VERBOSITY = 1 # Verbosity mode. 0 = silent, 1 = progress bar, 2 = one line per epoch.
 PLOT_LATENT_SPACE_EVERY = 1 #How often to plot the latent space, 1= every epoch, 10 every 10th etc.
+LATENT_SPACE_TILING = 8
 
 """ Load / Save Model"""
 LOAD_SAVED_WEIGHTS = False
 SAVE_MODEL_WHEN_DONE = False
 
 """ Data """
-DATASET = 'windows'
+DATASET = 'shapes'
 IMG_SIZE = 40 # must be dividable by 8
 COLOR_MODE = 'grayscale' # 'grayscale' or 'rgb'
 
 """ Data Augmentation """
 ZOOM_RANGE = 0.2
-CHANNEL_SHIFT_RANGE = 0.2,
-HORIZONTAL_FLIP = True,
+CHANNEL_SHIFT_RANGE = 0.2
+HORIZONTAL_FLIP = True
 
 """ Architecture """
 HIDDEN_1_SIZE = 50
