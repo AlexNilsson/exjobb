@@ -38,13 +38,13 @@ class VAE:
 
     x = Flatten()(x)
     x = Dropout(C.DROPUT_AMOUNT, input_shape=(300,))(x)
-    x = Dense(300, activation='relu')(x)
-    x = Dense(200, activation='relu')(x)
-    x = Dense(100, activation='relu')(x)
-    x = Dense(20, activation='relu')(x)
+    x = Dense(300, activation='sigmoid')(x)
+    x = Dense(200, activation='sigmoid')(x)
+    x = Dense(100, activation='sigmoid')(x)
+    x = Dense(20, activation='sigmoid')(x)
 
-    mu = Dense(C.Z_LAYER_SIZE, activation='linear')(x)
-    log_sigma = Dense(C.Z_LAYER_SIZE, activation='linear')(x)
+    mu = Dense(C.Z_LAYER_SIZE, activation='sigmoid')(x)
+    log_sigma = Dense(C.Z_LAYER_SIZE, activation='sigmoid')(x)
 
     encoder = Model(input_tensor, [mu, log_sigma])
 
@@ -59,10 +59,10 @@ class VAE:
     _y = int(self.convShape[2])
     _z = int(self.convShape[3])
 
-    x = Dense(20, activation='relu')(x)
-    x = Dense(100, activation='relu')(x)
-    x = Dense(200, activation='relu')(x)
-    x = Dense(300, activation='relu')(x)
+    x = Dense(20, activation='sigmoid')(x)
+    x = Dense(100, activation='sigmoid')(x)
+    x = Dense(200, activation='sigmoid')(x)
+    x = Dense(300, activation='sigmoid')(x)
     x = Dropout(C.DROPUT_AMOUNT, input_shape=(300,))(x)
     x = Dense(_x*_y*_z, activation='relu')(x)
     x = Reshape((_x,_y,_z))(x)

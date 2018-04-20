@@ -1,6 +1,6 @@
 import os, math
 import matplotlib.pyplot as plt
-from datetime.datetime import now
+from datetime import datetime
 from shutil import copyfile
 
 import cv2 as cv
@@ -20,8 +20,9 @@ import config as C
 import architecture
 from callbacks import PlotLatentSpaceProgress
 from generators import getDataPairGenerator
+from processing import preProcessImages, flattenImagesIntoArray, addNoiseToArray
 
-t = now()
+t = datetime.now()
 
 PATH_TO_THIS_DIR = os.path.dirname(__file__)
 
@@ -36,14 +37,14 @@ PATH_TO_SAVED_WEIGHTS = os.path.join(PATH_TO_OUT_DIRECTORY, 'saved_weights')
 PATH_TO_SAVED_MODELS = os.path.join(PATH_TO_OUT_DIRECTORY, 'saved_models')
 
 # create folders if they do not already exist
-if not os.path.exists(PATH_TO_OUT_DIRECTORY): os.mkdir(PATH_TO_OUT_DIRECTORY)
-if not os.path.exists(PATH_TO_OUT_DIRECTORY): os.mkdir(PATH_TO_EPOCH_PLOTS)
-if not os.path.exists(PATH_TO_OUT_DIRECTORY): os.mkdir(PATH_TO_SAVED_WEIGHTS)
-if not os.path.exists(PATH_TO_OUT_DIRECTORY): os.mkdir(PATH_TO_SAVED_MODELS)
+os.makedirs(PATH_TO_OUT_DIRECTORY, exist_ok = True)
+os.makedirs(PATH_TO_EPOCH_PLOTS, exist_ok = True)
+os.makedirs(PATH_TO_SAVED_WEIGHTS, exist_ok = True)
+os.makedirs(PATH_TO_SAVED_MODELS, exist_ok = True)
 
 # Backup current Architecture & Config file to this new working directory
-copyfile(os.path.join(PATH_TO_THIS_DIR, 'architecture.py'), PATH_TO_OUT_DIRECTORY)
-copyfile(os.path.join(PATH_TO_THIS_DIR, 'config.py'), PATH_TO_OUT_DIRECTORY)
+copyfile(os.path.join(PATH_TO_THIS_DIR, 'architecture.py'), os.path.join(PATH_TO_OUT_DIRECTORY,'architecture.py'))
+copyfile(os.path.join(PATH_TO_THIS_DIR, 'config.py'), os.path.join(PATH_TO_OUT_DIRECTORY,'config.py'))
 
 """ DATA """
 # Path to dataset
@@ -56,10 +57,34 @@ N_DATA = sum([len(files) for r, d, files in os.walk(PATH_TO_DATASET)])
 if C.USE_GENERATORS:
   # Data Generators, used to load data in batches to save memory
   # these are on the format (x, y) with input and expected output
+  # They also perform data augmentation on the fly: resize, greyscale, hue-shift, zoom etc.
   data_pair_generator = getDataPairGenerator(PATH_TO_DATASET)
   val_data_pair_generator = getDataPairGenerator(PATH_TO_DATASET)
-else:
 
+else:
+  # Preparses the trainingset to a new folder on disc and
+  # loads everything into memory in one batch
+  PATH_TO_PROCESSED_DATASET = os.path.join(PATH_TO_DATASET, 'processed')
+  if not os.path.exists(PATH_TO_PROCESSED_DATASET): os.mkdir(PATH_TO_PROCESSED_DATASET)
+
+  # preprocess data to new directory
+  preProcessImages(PATH_TO_DATASET, PATH_TO_PROCESSED_DATASET,
+    convert_to_grayscale = C.COLOR_MODE == 'greyscale',
+    resize_to = (C.IMG_SIZE, C.IMG_SIZE)
+  )
+
+  # Flatten and load all data into an array
+  channels = 3 if C.COLOR_MODE == 'rgb' else 1
+  img_shape = (C.IMG_SIZE, C.IMG_SIZE, channels)
+  x_train = flattenImagesIntoArray(PATH_TO_PROCESSED_DATASET, img_shape)
+
+  x_train_ref = x_train
+
+  # Add noise?
+  if C.NOISE_FACTOR > 0:
+    x_train = addNoiseToArray(x_train, C.NOISE_FACTOR)
+
+  x_test, x_test_ref = x_train, x_train_ref
 
 """ MODEL """
 # VAE Instance
@@ -101,7 +126,7 @@ vae.compile(optimizer = 'adam', loss = VAE.loss_function)
 latent_space_progress = PlotLatentSpaceProgress(
   model = decoder,
   tiling = C.LATENT_SPACE_TILING,
-  img_size = 720,
+  img_size = C.PLOT_SIZE,
   max_dist_from_mean = 2,
   show_plot = C.SHOW_LATENT_PLOT,
   save_plot = C.SAVE_LATENT_PLOT,
@@ -134,11 +159,11 @@ if C.USE_GENERATORS:
 else:
   # Fit using data already in memory
   vae.fit(
-    x_train, x_train,
+    x_train, x_train_ref,
     shuffle = C.SHUFFLE,
     epochs = C.EPOCHS,
     batch_size = C.BATCH_SIZE,
-    validation_data = (x_test, x_test)
+    validation_data = (x_test, x_test_ref)
   )
 
 # Save model on completion

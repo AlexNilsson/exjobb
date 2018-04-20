@@ -8,7 +8,7 @@ SAVE_MODEL_WHEN_DONE = False
 
 """ Data """
 DATASET = 'windows'
-IMG_SIZE = 64# 320 # must be dividable by 8
+IMG_SIZE = 320 # must be dividable by 8
 COLOR_MODE = 'rgb' # 'grayscale' or 'rgb'
 USE_GENERATORS = True
 
@@ -20,12 +20,14 @@ CHANNEL_SHIFT_RANGE = 0.2
 HORIZONTAL_FLIP = True
 
 """ Architecture """
+HIDDEN_1_SIZE = 50
+HIDDEN_2_SIZE = 1000
 Z_LAYER_SIZE = 2
 DROPUT_AMOUNT = 0.4
 NOISE_FACTOR = 0
 
 """ Training """
-BATCH_SIZE = 1 # the trainingset must be dividable with batches_size
+BATCH_SIZE = 55 # the trainingset must be dividable with batches_size
 EPOCHS = 10000
 KL_FACTOR = 0.5 # 1 = only KL, 0 = only Reconstruction Loss
 
@@ -34,7 +36,6 @@ PRINT_MODEL_SUMMARY = True
 TRAIN_VERBOSITY = 1 # Verbosity mode. 0 = silent, 1 = progress bar, 2 = one line per epoch.
 
 PLOT_LATENT_SPACE_EVERY = 1 #How often to plot the latent space, 1= every epoch, 10 every 10th etc.
-PLOT_SIZE = 720 #px
-LATENT_SPACE_TILING = 15
+LATENT_SPACE_TILING = 32
 SHOW_LATENT_PLOT = False
 SAVE_LATENT_PLOT = True

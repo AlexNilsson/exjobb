@@ -8,7 +8,7 @@ SAVE_MODEL_WHEN_DONE = False
 
 """ Data """
 DATASET = 'windows'
-IMG_SIZE = 64# 320 # must be dividable by 8
+IMG_SIZE = 320 # must be dividable by 8
 COLOR_MODE = 'rgb' # 'grayscale' or 'rgb'
 USE_GENERATORS = True
 

@@ -43,8 +43,8 @@ class VAE:
     x = Dense(100, activation='relu')(x)
     x = Dense(20, activation='relu')(x)
 
-    mu = Dense(C.Z_LAYER_SIZE, activation='linear')(x)
-    log_sigma = Dense(C.Z_LAYER_SIZE, activation='linear')(x)
+    mu = Dense(C.Z_LAYER_SIZE, activation='sigmoid')(x)
+    log_sigma = Dense(C.Z_LAYER_SIZE, activation='sigmoid')(x)
 
     encoder = Model(input_tensor, [mu, log_sigma])
 
