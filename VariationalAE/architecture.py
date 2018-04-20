@@ -78,7 +78,7 @@ class VAE:
     x = UpSampling2D((2, 2))(x)
     x = Conv2D(64, (7, 7), activation='relu', padding='same')(x)
     x = UpSampling2D((2, 2))(x)
-    x = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(x)
+    x = Conv2D(3, (3, 3), activation='sigmoid', padding='same')(x)
 
     decoder = Model(z, x)
 

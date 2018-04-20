@@ -1,13 +1,20 @@
+
+NAME = 'VAE'
+
 """ Load / Save Model"""
 LOAD_SAVED_WEIGHTS = False
+LOAD_FROM_DIRECTORY = 'out/2018-04-20--13-10--model'
 SAVE_MODEL_WHEN_DONE = False
 
 """ Data """
 DATASET = 'windows'
 IMG_SIZE = 320 # must be dividable by 8
 COLOR_MODE = 'rgb' # 'grayscale' or 'rgb'
+USE_GENERATORS = True
 
 """ Data Augmentation """
+SHUFFLE = True
+# Only applicable if USE_GENERATORS = True
 ZOOM_RANGE = 0.2
 CHANNEL_SHIFT_RANGE = 0.2
 HORIZONTAL_FLIP = True

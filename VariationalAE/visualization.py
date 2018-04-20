@@ -1,21 +1,31 @@
+import math
 import numpy as np
 import cv2 as cv
+from PIL import Image
 
-def plotLatentSpace2D(model, tiling=15, tile_size=40, zoom=1, show_plot=True):
+import config as C
 
-  figure = np.zeros((tile_size * tiling, tile_size * tiling))
+def plotLatentSpace2D(model, tiling = 15, img_size = 720, max_dist_from_mean = 1, show_plot = True, channels = 3):
 
-  # we will sample n points within [-15, 15] standard deviations
-  grid_x = np.linspace(-zoom, zoom, tiling)
-  grid_y = np.linspace(-zoom, zoom, tiling)
+  # Calculate appropriate tile size
+  tile_size = math.ceil(img_size / tiling)
+  # Create an empty canvas of appropriate size (This may be slightly larger than img_size due to px rounding)
+  figure = np.zeros((tile_size * tiling, tile_size * tiling, channels))
+
+  # sample n points within the distribution
+  grid_x = np.linspace(-max_dist_from_mean, max_dist_from_mean, tiling)
+  grid_y = np.linspace(-max_dist_from_mean, max_dist_from_mean, tiling)
 
   for i, yi in enumerate(grid_x):
     for j, xi in enumerate(grid_y):
       z_sample = np.array([[xi, yi]])
       x_decoded = model.predict(z_sample)
-      visualisation_image = x_decoded[0].reshape(tile_size, tile_size)
+      visualisation_image = x_decoded[0].reshape(tile_size, tile_size, channels)
       figure[i * tile_size: (i + 1) * tile_size,
-              j * tile_size: (j + 1) * tile_size] = visualisation_image
+              j * tile_size: (j + 1) * tile_size, :] = visualisation_image
+
+  # Resize figure down to img_size (in case it is larger due to tile_size px rounding)
+  figure = cv.resize(figure, (img_size, img_size))
 
   if show_plot:
     cv.imshow('Latent Space 2D', figure)

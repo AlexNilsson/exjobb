@@ -20,7 +20,7 @@ import os
 pixels_amount = 32 #must be dividable by 8
 batches_size= 100 #the trainingset must be dividable with batches_size
 n_epoch = 100
-hidden_1_size =200 
+hidden_1_size =200
 hidden_2_size = 100 #the flat dense layers before and after z
 dropout_amount = 0.2
 z_layer_size = 2
@@ -38,7 +38,7 @@ train_images_path = os.path.join(os.path.dirname(__file__), '../data/shapes/shap
 #print(train_images_path)
 train_images_resized_path = os.path.join(os.path.dirname(__file__), '../data/shapes/shape_resized')
 
-""" resizing and grayscale of training images """ 
+""" resizing and grayscale of training images """
 listing = os.listdir(train_images_path)
 num_samples = np.size(listing)
 
@@ -69,7 +69,7 @@ print(x_test.shape)
 
 """ #if noisy images is wanted
 noise_factor = 0.4
-x_train_noisy = x_train + noise_factor * np.random.normal(size=x_train.shape) 
+x_train_noisy = x_train + noise_factor * np.random.normal(size=x_train.shape)
 x_test_noisy = x_test + noise_factor * np.random.normal(size=x_test.shape)
 
 x_train_noisy = np.clip(x_train_noisy, 0.0, 1.0)
@@ -120,7 +120,7 @@ _z = int(convShape[3])
 
 #---------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------
-#reparametrization trick to sample z 
+#reparametrization trick to sample z
 def sample_z(args):
     mu, log_sigma = args
     eps = K.random_normal(shape=(K.shape(mu)[0], z_layer_size), mean=0., stddev=1.)
@@ -201,7 +201,7 @@ def vae_loss(inputs_flat, outputs_flat):
 	# compute the KL loss
 	kl_loss = - 0.5 * K.sum(1 + log_sigma - K.square(mu) - K.square(K.exp(log_sigma)), axis=-1)
 	# return the average loss over all images in batch
-	total_loss = K.mean(reconstruction_loss + kl_loss*0.5)    
+	total_loss = K.mean(reconstruction_loss + kl_loss*0.5)
 	return total_loss
 
 """ def vae_loss(inputs_flat, outputs_flat):
@@ -210,7 +210,7 @@ def vae_loss(inputs_flat, outputs_flat):
 	# compute the KL loss
 	kl_loss = - 0.5 * K.sum(1 + log_sigma - K.square(mu) - K.exp(log_sigma), axis=-1)
 	# return the average loss over all images in batch
-	total_loss = K.mean(reconstruction_loss + kl_loss)    
+	total_loss = K.mean(reconstruction_loss + kl_loss)
 	return total_loss """
 
 print('vae loss')

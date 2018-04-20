@@ -7,8 +7,11 @@ from visualization import plotLatentSpace2D
 import config as C
 
 class PlotLatentSpaceProgress(Callback):
-  def __init__(self, model, tiling=15, tile_size = 40, zoom = 1, show_plot=True, save_plot=True, path_to_save_directory='./epoch_plots', save_name='image'):
-    self.plot = lambda : plotLatentSpace2D(model, tiling = tiling, tile_size = tile_size, zoom = zoom, show_plot=show_plot )
+  def __init__(self, model, tiling=15, img_size = 720, max_dist_from_mean = 1, show_plot = True, save_plot = True, path_to_save_directory = './epoch_plots', save_name = 'image'):
+
+    channels = 3 if C.COLOR_MODE == 'rgb' else 1
+
+    self.plot = lambda : plotLatentSpace2D(model, tiling = tiling, img_size = img_size, max_dist_from_mean = max_dist_from_mean, show_plot = show_plot, channels = channels )
     self.save_plot = save_plot
     self.path_to_save_directory = path_to_save_directory
     self.save_name = save_name
