@@ -19,17 +19,19 @@ import os
 #----------------------------------------------
 """ user preferences """
 pixels_amount = 28 #must be dividable by 8
-batchsize = 100 #the trainingset must be dividable with batches_size
-n_epoch = 500
+batchsize = 200 #the trainingset must be dividable with batches_size
+n_epoch = 10000
 hidden_1_size =100 
 hidden_2_size = 50 #the flat dense layers before and after z
 dropout_amount = 0.3
 z_layer_size = 2
 
-
+""" adjust discriminator layersize to match complexity of the decoder """
 disc_1_size = 50
 disc_2_size = 100
-disc_3_size = 30
+disc_3_size = 100
+disc_4_size = 50
+disc_5_size = 50
 
 input_layer_size = pixels_amount*pixels_amount
 img_rows, img_cols = pixels_amount, pixels_amount #what size images are reshaped to
@@ -252,6 +254,8 @@ print(vae_loss)
 disc_1 = Dense(disc_1_size, activation='relu')
 disc_2 = Dense(disc_2_size, activation='relu')
 disc_3 = Dense(disc_3_size, activation='relu')
+disc_4 = Dense(disc_4_size, activation='relu')
+disc_5 = Dense(disc_5_size, activation='relu')
 disc_out = Dense(1, activation='sigmoid')
 
 #structure discriminator
@@ -259,6 +263,8 @@ discriminator_input = Input(shape=(z_layer_size,))
 x = disc_1(discriminator_input)
 x = disc_2(x)
 x = disc_3(x)
+x = disc_4(x)
+#x = disc_5(x)
 discriminator_output = disc_out(x)
 discriminator = Model(discriminator_input, discriminator_output)
 
@@ -266,6 +272,8 @@ discriminator = Model(discriminator_input, discriminator_output)
 x = disc_1(z)
 x = disc_2(x)
 x = disc_3(x)
+x = disc_4(x)
+#x = disc_5(x)
 discriminator_e_output = disc_out(x)
 discriminator_encoder = Model(inputs, discriminator_e_output)
 #---------------------------------------------------------------------------------------------------------------------------------
@@ -380,30 +388,33 @@ def settrainable(model, toset):
 
 print('x train shape')
 print(x_train.shape)
-for epochnumber in range(500):
+for epochnumber in range(n_epoch):
     np.random.shuffle(x_train)
     
     for i in range(int(len(x_train) / batchsize)):
+        """ training stage 1 -- reconstruction of image """
         settrainable(vae, True)
         settrainable(encoder, True)
         settrainable(decoder, True)
         
         batch = x_train[i*batchsize:i*batchsize+batchsize]
-        vae.train_on_batch(batch, batch)
+        vae.train_on_batch(batch, batch) #trains the autoencoder to reconstruct imput images
         
+        """ training stage 2 -- differ between wanted and unwanted distribution """
         settrainable(discriminator, True)
-        batchpred = encoder.predict(batch)
-        fakepred = np.random.standard_normal((batchsize,2))
-        discbatch_x = np.concatenate([batchpred, fakepred])
+        batchpred = encoder.predict(batch) #the encoder predicts the distribution of z-values for batch
+        fakepred = np.random.standard_normal((batchsize,2)) #the wanted distibution
+        discbatch_x = np.concatenate([batchpred, fakepred]) #concats the predicted and wanted distribution
         discbatch_y = np.concatenate([np.zeros(batchsize), np.ones(batchsize)])
-        discriminator.train_on_batch(discbatch_x, discbatch_y)
+        discriminator.train_on_batch(discbatch_x, discbatch_y) #trains the discriminator to differ between wanted and unwanted (from encoder z) distribution
         
+        """ training stage 3 -- encode z-values to fit in the wanted distribution """
         settrainable(discriminator_encoder, True)
         settrainable(encoder, True)
-        settrainable(discriminator, False)
-        discriminator_encoder.train_on_batch(batch, np.ones(batchsize))
+        settrainable(discriminator, False) #using the weights from previous training stage (we just want to update the encoders weights)
+        discriminator_encoder.train_on_batch(batch, np.ones(batchsize)) #trains the encoder to code z-values to fit in the wanted distribution
     
-    print(epochnumber)
+    print(epochnumber, 'of' '{}'.format(n_epoch))
     print("Reconstruction Loss:", vae.evaluate(x_train, x_train, verbose=1))
     print("Adverserial Loss:", discriminator_encoder.evaluate(x_train, np.ones(len(x_train)), verbose=1))
 
@@ -413,13 +424,15 @@ for epochnumber in range(500):
 #---------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------
 #saving model and weights
-""" 
-vae.save('vae_model.h5')
+
+""" vae.save('vae_model.h5')
+decoder.save('decoder_model.h5') """
+
 vae.save_weights('vae_weights.h5')
+discriminator.save_weights('discriminator_weight.h5')
 decoder.save_weights('decoder_weights.h5')
 encoder.save_weights('encoder_weights.h5')
-decoder.save('decoder_model.h5')
- """
+discriminator_encoder.save_weights('discriminator_encoder_weight.h5')
 #---------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------
 # visualisation
