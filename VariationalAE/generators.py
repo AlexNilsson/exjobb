@@ -1,7 +1,7 @@
 import numpy as np
 from keras.preprocessing.image import ImageDataGenerator
 
-import config as C
+from model import config as C
 
 # Custom generator to create batch pairs so we can compare y to x, without labels
 # Returns (x_batch, y_batch)

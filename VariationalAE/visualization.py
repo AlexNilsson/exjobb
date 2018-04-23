@@ -3,7 +3,7 @@ import numpy as np
 import cv2 as cv
 from PIL import Image
 
-import config as C
+from model import config as C
 
 def plotLatentSpace2D(model, tiling = 15, img_size = 720, max_dist_from_mean = 1, show_plot = True, channels = 3):
 

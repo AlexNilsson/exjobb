@@ -1,7 +1,7 @@
 import os, math
 import matplotlib.pyplot as plt
 from datetime import datetime
-from shutil import copyfile
+from shutil import copytree
 
 import cv2 as cv
 import numpy as np
@@ -16,19 +16,21 @@ from keras.preprocessing.image import ImageDataGenerator
 import keras.backend as K
 
 # Project Imports
-import config as C
-import architecture
+import model as M
+from model import config as C
+from model import architecture
+
 from callbacks import PlotLatentSpaceProgress
 from generators import getDataPairGenerator
 from processing import preProcessImages, flattenImagesIntoArray, addNoiseToArray
 
-t = datetime.now()
-
 PATH_TO_THIS_DIR = os.path.dirname(__file__)
+
+t = datetime.now()
 
 """ OUTPUT DIRECTORIES """
 # Create a new output directory for this training session with a unique name
-THIS_ID = "{}-{}-{}--{}-{}-{}--{}".format(t.year, t.month, t.day, t.hour, t.minute, t.second, C.NAME)
+THIS_ID = "{}--{}-{}-{}--{}-{}-{}".format(M.NAME, t.year, t.month, t.day, t.hour, t.minute, t.second)
 PATH_TO_OUT_DIRECTORY = os.path.join(PATH_TO_THIS_DIR, 'out', THIS_ID)
 
 # sub folders
@@ -43,8 +45,7 @@ os.makedirs(PATH_TO_SAVED_WEIGHTS, exist_ok = True)
 os.makedirs(PATH_TO_SAVED_MODELS, exist_ok = True)
 
 # Backup current Architecture & Config file to this new working directory
-copyfile(os.path.join(PATH_TO_THIS_DIR, 'architecture.py'), os.path.join(PATH_TO_OUT_DIRECTORY,'architecture.py'))
-copyfile(os.path.join(PATH_TO_THIS_DIR, 'config.py'), os.path.join(PATH_TO_OUT_DIRECTORY,'config.py'))
+copytree(os.path.join(PATH_TO_THIS_DIR, M.REL_PATH_TO_MODEL_DIR), os.path.join(PATH_TO_OUT_DIRECTORY, M.NAME))
 
 """ DATA """
 # Path to dataset
@@ -131,7 +132,7 @@ latent_space_progress = PlotLatentSpaceProgress(
   show_plot = C.SHOW_LATENT_PLOT,
   save_plot = C.SAVE_LATENT_PLOT,
   path_to_save_directory = PATH_TO_EPOCH_PLOTS,
-  save_name = C.NAME
+  save_name = M.NAME
 )
 
 # Training Callback: Weights checkpoint
