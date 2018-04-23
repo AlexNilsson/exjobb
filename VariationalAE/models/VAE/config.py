@@ -4,7 +4,7 @@ LOAD_FROM_DIRECTORY = 'out/2018-04-20--13-10--model'
 SAVE_MODEL_WHEN_DONE = False
 
 """ Data """
-DATASET = 'furniture'
+DATASET = 'windows'
 IMG_SIZE = 64 # 320 # must be dividable by 8
 COLOR_MODE = 'rgb' # 'grayscale' or 'rgb'
 USE_GENERATORS = True

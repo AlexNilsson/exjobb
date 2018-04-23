@@ -1,6 +1,5 @@
 from keras.layers import Input, Dense, Lambda, Dropout, Conv2D, ZeroPadding2D, MaxPooling2D, UpSampling2D, Flatten, Reshape, BatchNormalization, LeakyReLU
 from keras.models import Model
-from keras.optimizers import Adam
 
 from . import config as C
 
