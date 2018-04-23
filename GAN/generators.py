@@ -3,7 +3,17 @@ from keras.preprocessing.image import ImageDataGenerator
 
 from model import config as C
 
-def getDataGenerator(path_to_dataset):
+# Custom generator to create batch pairs so we can compare y to x, without labels
+# Returns (x_batch, y_batch)
+def data_pair_generator(generator):
+  for batch in generator:
+    batch = batch / 255
+    batch_ref = batch
+    if C.NOISE_FACTOR > 0:
+      batch_ref = batch_ref + C.NOISE_FACTOR * np.random.normal(size=batch_ref.shape)
+    yield (batch, batch_ref)
+
+def getDataPairGenerator(path_to_dataset):
   data_augmentor = ImageDataGenerator(
     #zoom_range = C.ZOOM_RANGE,
     #channel_shift_range = C.CHANNEL_SHIFT_RANGE,
@@ -18,21 +28,5 @@ def getDataGenerator(path_to_dataset):
     class_mode = None,
     color_mode = C.COLOR_MODE
   )
-
-  return data_generator
-
-# Custom generator to create batch pairs so we can compare y to x, without labels
-# Returns (x_batch, y_batch)
-def data_pair_generator(generator):
-  for batch in generator:
-    batch = batch / 255
-    batch_ref = batch
-    if C.NOISE_FACTOR > 0:
-      batch_ref = batch_ref + C.NOISE_FACTOR * np.random.normal(size=batch_ref.shape)
-    yield (batch, batch_ref)
-
-def getDataPairGenerator(path_to_dataset):
-
-  data_generator = getDataGenerator(path_to_dataset)
 
   return data_pair_generator(data_generator)

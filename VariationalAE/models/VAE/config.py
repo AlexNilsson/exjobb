@@ -1,6 +1,3 @@
-
-NAME = 'VAE3'
-
 """ Load / Save Model"""
 LOAD_SAVED_WEIGHTS = False
 LOAD_FROM_DIRECTORY = 'out/2018-04-20--13-10--model'
@@ -8,7 +5,7 @@ SAVE_MODEL_WHEN_DONE = False
 
 """ Data """
 DATASET = 'furniture'
-IMG_SIZE = 64# 320 # must be dividable by 8
+IMG_SIZE = 64 # 320 # must be dividable by 8
 COLOR_MODE = 'rgb' # 'grayscale' or 'rgb'
 USE_GENERATORS = True
 
@@ -33,7 +30,7 @@ KL_FACTOR = 0.5 # 1 = only KL, 0 = only Reconstruction Loss
 PRINT_MODEL_SUMMARY = True
 TRAIN_VERBOSITY = 1 # Verbosity mode. 0 = silent, 1 = progress bar, 2 = one line per epoch.
 
-PLOT_LATENT_SPACE_EVERY = 1 #How often to plot the latent space, 1= every epoch, 10 every 10th etc.
+PLOT_LATENT_SPACE_EVERY = 10 #How often to plot the latent space, 1= every epoch, 10 every 10th etc.
 PLOT_SIZE = 720 #px
 LATENT_SPACE_TILING = 15
 SHOW_LATENT_PLOT = False

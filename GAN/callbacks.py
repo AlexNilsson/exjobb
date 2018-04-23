@@ -16,7 +16,7 @@ class PlotLatentSpaceProgress(Callback):
     self.path_to_save_directory = path_to_save_directory
     self.save_name = save_name
 
-  def on_epoch_begin(self, epoch, logs=None):
+  def on_epoch_begin(self, epoch, logs):
     if epoch % C.PLOT_LATENT_SPACE_EVERY == 0:
       latentSpacePlot = self.plot()
 
@@ -27,5 +27,5 @@ class PlotLatentSpaceProgress(Callback):
         file_path = os.path.join(self.path_to_save_directory, '{}-{}.jpg'.format(epoch, self.save_name))
         cv.imwrite(file_path, figure_to_file)
 
-  def on_epoch_end(self, epoch, logs=None):
+  def on_epoch_end(self, epoch, logs):
     cv.destroyAllWindows()

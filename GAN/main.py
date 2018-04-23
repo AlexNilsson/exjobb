@@ -7,13 +7,12 @@ import cv2 as cv
 import numpy as np
 from PIL import Image
 
-import tensorflow as tf
 from keras.layers import Input, Dense, Lambda, Dropout, Conv2D, MaxPooling2D, UpSampling2D, Flatten, Reshape
 from keras.models import Model
+from keras.optimizers import Adam
 from keras.objectives import binary_crossentropy
 from keras.callbacks import LearningRateScheduler, ModelCheckpoint
 from keras.preprocessing.image import ImageDataGenerator
-import keras.backend as K
 
 # Project Imports
 import model as M
@@ -21,7 +20,7 @@ from model import config as C
 from model import architecture
 
 from callbacks import PlotLatentSpaceProgress
-from generators import getDataPairGenerator
+from generators import getDataGenerator
 from processing import preProcessImages, flattenImagesIntoArray, addNoiseToArray
 
 PATH_TO_THIS_DIR = os.path.dirname(__file__)
@@ -59,8 +58,8 @@ if C.USE_GENERATORS:
   # Data Generators, used to load data in batches to save memory
   # these are on the format (x, y) with input and expected output
   # They also perform data augmentation on the fly: resize, greyscale, hue-shift, zoom etc.
-  data_pair_generator = getDataPairGenerator(PATH_TO_DATASET)
-  val_data_pair_generator = getDataPairGenerator(PATH_TO_DATASET)
+  data_generator = getDataGenerator(PATH_TO_DATASET)
+  #val_data_generator = getDataGenerator(PATH_TO_DATASET)
 
 else:
   # Preparses the trainingset to a new folder on disc and
@@ -88,23 +87,14 @@ else:
   x_test, x_test_ref = x_train, x_train_ref
 
 """ MODEL """
-# VAE Instance
-VAE = architecture.VAE()
-
-# Encoder Model
-encoder = VAE.encoder
-
-# Decoder Model
-decoder = VAE.decoder
-
-# VAE Model
-vae = VAE.model
+# GAN Instance
+GAN = architecture.GAN()
 
 # Load saved weights
 if C.LOAD_SAVED_WEIGHTS:
-  before_weight_load = vae.get_weights()
-  vae.load_weights(os.path.join(PATH_TO_SAVED_WEIGHTS, 'weight.hdf5'), by_name=False)
-  after_weight_load = vae.get_weights()
+  before_weight_load = gan.get_weights()
+  gan.load_weights(os.path.join(PATH_TO_SAVED_WEIGHTS, 'weight.hdf5'), by_name=False)
+  after_weight_load = gan.get_weights()
   print('before_weight_load')
   print(before_weight_load)
   print('after_weight_load')
@@ -112,20 +102,27 @@ if C.LOAD_SAVED_WEIGHTS:
 
 # Print model summary
 if C.PRINT_MODEL_SUMMARY:
-  print('vae summary:')
-  vae.summary()
-  print('encoder summary:')
-  encoder.summary()
-  print('decoder summary:')
-  decoder.summary()
+  print('gan summary:')
+  GAN.combined.summary()
+  print('generator summary:')
+  GAN.generator.summary()
+  print('discriminator summary:')
+  GAN.discriminator.summary()
 
 """ TRAINING """
 # Optimizer
-vae.compile(optimizer = 'adam', loss = VAE.loss_function)
+optimizer = Adam(0.0002, 0.5)
+
+# compile Discriminator model
+GAN.discriminator.compile(loss = 'binary_crossentropy', optimizer = optimizer, metric = ['accuracy'])
+
+# compile Combined model, with frozen discriminator
+GAN.combined.get_layer(name='Discriminator').trainable = False
+GAN.combined.compile(loss = 'binary_crossentropy', optimizer = optimizer)
 
 # Training Callback: Latent space progress
 latent_space_progress = PlotLatentSpaceProgress(
-  model = decoder,
+  model = generator,
   tiling = C.LATENT_SPACE_TILING,
   img_size = C.PLOT_SIZE,
   max_dist_from_mean = 2,
@@ -143,10 +140,54 @@ weights_checkpoint_callback = ModelCheckpoint(
   save_weights_only = True
 )
 
+
+batches = math.floor(N_DATA/C.BATCH_SIZE)
+
+for epoch in range(1, C.EPOCHS + 1):
+
+  latent_space_progress.on_epoch_begin(epoch, None)
+
+  for batch in data_generator:
+
+    """ Train Discriminator """
+    # Select a random half batch of images
+    real_data = batch(np.random.randint(0, C.BATCH_SIZE, C.BATCH_SIZE/2))
+
+    # Sample noise and generate a half batch of new images
+    flat_img_length = batch.shape[1]
+    noise = np.random.normal(0, 1, (C.BATCH_SIZE/2, flat_img_length))
+    fake_data = GAN.generator.predict(noise)
+
+    # Train the discriminator (real classified as ones and generated as zeros)
+    d_loss_real = GAN.discriminator.train_on_batch(real_data, np.ones((C.BATCH_SIZE/2, 1)))
+    d_loss_fake = GAN.discriminator.train_on_batch(fake_data, np.zeros((C.BATCH_SIZE/2, 1)))
+    d_loss = np.mean([disc_loss_real, disc_loss_fake])
+
+    """ Train Generator """
+    # Sample generator input
+    noise = np.random.normal(0, 1, (C.BATCH_SIZE, flat_img_length))
+
+    # Train the generator to fool the discriminator, e.g. classify these images as real (1)
+    # The discriminator model is frozen in this stage but its gradient is still used to guide the generator
+    g_loss = GAN.combined.train_on_batch(noise, np.ones((C.BATCH_SIZE, 1)))
+
+    # Plot the progress
+    print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
+
+
+  latent_space_progress.on_epoch_end(epoch, None)
+  data_generator.on_epoch_end()
+
+
+
+
+
+
+
 # Train Model
 if C.USE_GENERATORS:
   # Fit using data from generators
-  vae.fit_generator(
+  gan.fit_generator(
     data_pair_generator,
     epochs = C.EPOCHS,
     steps_per_epoch = math.floor(N_DATA/C.BATCH_SIZE),
@@ -159,7 +200,7 @@ if C.USE_GENERATORS:
   )
 else:
   # Fit using data already in memory
-  vae.fit(
+  gan.fit(
     x_train, x_train_ref,
     shuffle = C.SHUFFLE,
     epochs = C.EPOCHS,
@@ -171,8 +212,11 @@ else:
 
 # Save model on completion
 if C.SAVE_MODEL_WHEN_DONE:
-  vae.save(os.path.join(PATH_TO_SAVED_MODELS, 'vae_model.h5'))
-  vae.save_weights(os.path.join(PATH_TO_SAVED_MODELS,'vae_weights.h5'))
-  decoder.save_weights(os.path.join(PATH_TO_SAVED_MODELS,'decoder_weights.h5'))
-  encoder.save_weights(os.path.join(PATH_TO_SAVED_MODELS,'encoder_weights.h5'))
-  decoder.save(os.path.join(PATH_TO_SAVED_MODELS,'decoder_model.h5'))
+  GAN.combined.save(os.path.join(PATH_TO_SAVED_MODELS, 'gan_model.h5'))
+  GAN.combined.save_weights(os.path.join(PATH_TO_SAVED_MODELS,'gan_weights.h5'))
+
+  GAN.generator.save(os.path.join(PATH_TO_SAVED_MODELS, 'generator_model.h5'))
+  GAN.generator.save_weights(os.path.join(PATH_TO_SAVED_MODELS,'generator_weights.h5'))
+
+  GAN.discriminator.save(os.path.join(PATH_TO_SAVED_MODELS,'discriminator_model.h5'))
+  GAN.discriminator.save_weights(os.path.join(PATH_TO_SAVED_MODELS,'discriminator_weights.h5'))
