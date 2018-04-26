@@ -1,5 +1,4 @@
 import os, math
-import matplotlib.pyplot as plt
 from datetime import datetime
 from shutil import copytree
 
@@ -19,7 +18,7 @@ import model as M
 from model import config as C
 from model import architecture
 
-from callbacks import PlotLatentSpaceProgress
+from callbacks import PlotLatentSpaceProgress, PlotLosses
 from generators import getDataGenerator
 from processing import preProcessImages, flattenImagesIntoArray, addNoiseToArray
 
@@ -100,6 +99,20 @@ if C.LOAD_SAVED_WEIGHTS:
   print('after_weight_load')
   print(after_weight_load)
 
+""" TRAINING """
+# Optimizer
+optimizer = Adam(0.0002, 0.5)
+
+# compile Generator model
+GAN.generator.compile(loss = 'binary_crossentropy', optimizer = optimizer)
+
+# compile Discriminator model
+GAN.discriminator.compile(loss = 'binary_crossentropy', optimizer = optimizer)
+
+# compile Combined model, with frozen discriminator
+GAN.combined.get_layer(name='Discriminator').trainable = False
+GAN.combined.compile(loss = 'binary_crossentropy', optimizer = optimizer)
+
 # Print model summary
 if C.PRINT_MODEL_SUMMARY:
   print('gan summary:')
@@ -109,20 +122,9 @@ if C.PRINT_MODEL_SUMMARY:
   print('discriminator summary:')
   GAN.discriminator.summary()
 
-""" TRAINING """
-# Optimizer
-optimizer = Adam(0.0002, 0.5)
-
-# compile Discriminator model
-GAN.discriminator.compile(loss = 'binary_crossentropy', optimizer = optimizer, metric = ['accuracy'])
-
-# compile Combined model, with frozen discriminator
-GAN.combined.get_layer(name='Discriminator').trainable = False
-GAN.combined.compile(loss = 'binary_crossentropy', optimizer = optimizer)
-
 # Training Callback: Latent space progress
 latent_space_progress = PlotLatentSpaceProgress(
-  model = generator,
+  model = GAN.generator,
   tiling = C.LATENT_SPACE_TILING,
   img_size = C.PLOT_SIZE,
   max_dist_from_mean = 2,
@@ -132,83 +134,57 @@ latent_space_progress = PlotLatentSpaceProgress(
   save_name = M.NAME
 )
 
-# Training Callback: Weights checkpoint
-weights_checkpoint_callback = ModelCheckpoint(
-  filepath = os.path.join(PATH_TO_SAVED_WEIGHTS, 'weight.hdf5'),
-  verbose = 1,
-  save_best_only = True,
-  save_weights_only = True
-)
+# Training Callback: Plot Losses
+plot_losses = PlotLosses()
 
+DISC_TRAIN_THRESH = -math.log(0.5) # ~cross entropy loss at 50% correct classification
 
 batches = math.floor(N_DATA/C.BATCH_SIZE)
+
+d_loss = math.inf
+g_loss = math.inf
 
 for epoch in range(1, C.EPOCHS + 1):
 
   latent_space_progress.on_epoch_begin(epoch, None)
 
-  for batch in data_generator:
+  for bath_idx in range(data_generator.__len__()):
+    batch = data_generator.__getitem__(bath_idx)
 
-    """ Train Discriminator """
-    # Select a random half batch of images
-    real_data = batch(np.random.randint(0, C.BATCH_SIZE, C.BATCH_SIZE/2))
+    if d_loss > DISC_TRAIN_THRESH or ( d_loss < DISC_TRAIN_THRESH and g_loss < DISC_TRAIN_THRESH ):
+      """ Train Discriminator """
+      # Select a random half batch of images
+      real_data = batch[np.random.randint(0, int(C.BATCH_SIZE), int(C.BATCH_SIZE/2))]
 
-    # Sample noise and generate a half batch of new images
-    flat_img_length = batch.shape[1]
-    noise = np.random.normal(0, 1, (C.BATCH_SIZE/2, flat_img_length))
-    fake_data = GAN.generator.predict(noise)
+      # Sample noise and generate a half batch of new images
+      #flat_img_length = batch.shape[1]
+      noise = np.random.normal(0, 1, (int(C.BATCH_SIZE/2), int(C.Z_LAYER_SIZE)))
+      fake_data = GAN.generator.predict(noise)
 
-    # Train the discriminator (real classified as ones and generated as zeros)
-    d_loss_real = GAN.discriminator.train_on_batch(real_data, np.ones((C.BATCH_SIZE/2, 1)))
-    d_loss_fake = GAN.discriminator.train_on_batch(fake_data, np.zeros((C.BATCH_SIZE/2, 1)))
-    d_loss = np.mean([disc_loss_real, disc_loss_fake])
+      # Train the discriminator (real classified as ones and generated as zeros)
+      d_loss_real = GAN.discriminator.train_on_batch(real_data, np.ones((int(C.BATCH_SIZE/2), 1)))
+      d_loss_fake = GAN.discriminator.train_on_batch(fake_data, np.zeros((int(C.BATCH_SIZE/2), 1)))
+      d_loss = np.mean([d_loss_real, d_loss_fake])
 
-    """ Train Generator """
-    # Sample generator input
-    noise = np.random.normal(0, 1, (C.BATCH_SIZE, flat_img_length))
+    if g_loss > DISC_TRAIN_THRESH or ( d_loss < DISC_TRAIN_THRESH and g_loss < DISC_TRAIN_THRESH ):
+      """ Train Generator """
+      # Sample generator input
+      noise = np.random.normal(0, 1, (int(C.BATCH_SIZE), int(C.Z_LAYER_SIZE)))
 
-    # Train the generator to fool the discriminator, e.g. classify these images as real (1)
-    # The discriminator model is frozen in this stage but its gradient is still used to guide the generator
-    g_loss = GAN.combined.train_on_batch(noise, np.ones((C.BATCH_SIZE, 1)))
+      # Train the generator to fool the discriminator, e.g. classify these images as real (1)
+      # The discriminator model is frozen in this stage but its gradient is still used to guide the generator
+      g_loss = GAN.combined.train_on_batch(noise, np.ones((C.BATCH_SIZE, 1)))
 
     # Plot the progress
-    print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
+    print("Epoch:{} Batch:{}/{} [D loss: {}] [G loss: {}]".format(epoch, bath_idx+1, batches, d_loss, g_loss))
 
 
   latent_space_progress.on_epoch_end(epoch, None)
+  plot_losses.on_epoch_end(epoch, {'d_loss': d_loss, 'g_loss': g_loss})
   data_generator.on_epoch_end()
 
-
-
-
-
-
-
-# Train Model
-if C.USE_GENERATORS:
-  # Fit using data from generators
-  gan.fit_generator(
-    data_pair_generator,
-    epochs = C.EPOCHS,
-    steps_per_epoch = math.floor(N_DATA/C.BATCH_SIZE),
-    validation_data = val_data_pair_generator,
-    validation_steps = math.ceil((N_DATA/C.BATCH_SIZE)/10),
-    shuffle = C.SHUFFLE,
-    callbacks = [latent_space_progress, weights_checkpoint_callback],
-    use_multiprocessing = False,
-    verbose = C.TRAIN_VERBOSITY
-  )
-else:
-  # Fit using data already in memory
-  gan.fit(
-    x_train, x_train_ref,
-    shuffle = C.SHUFFLE,
-    epochs = C.EPOCHS,
-    batch_size = C.BATCH_SIZE,
-    validation_data = (x_test, x_test_ref),
-    callbacks = [latent_space_progress, weights_checkpoint_callback],
-    verbose = C.TRAIN_VERBOSITY
-  )
+  if epoch % C.SAVE_WEIGHTS_FREQ == 0:
+    GAN.combined.save_weights(os.path.join(PATH_TO_SAVED_WEIGHTS,'combined_weight.hdf5'))
 
 # Save model on completion
 if C.SAVE_MODEL_WHEN_DONE:

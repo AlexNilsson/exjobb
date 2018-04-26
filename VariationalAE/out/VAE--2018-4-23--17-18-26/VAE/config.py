@@ -4,7 +4,7 @@ LOAD_FROM_DIRECTORY = 'out/2018-04-20--13-10--model'
 SAVE_MODEL_WHEN_DONE = False
 
 """ Data """
-DATASET = 'furniture'
+DATASET = 'windows'
 IMG_SIZE = 64 # 320 # must be dividable by 8
 COLOR_MODE = 'rgb' # 'grayscale' or 'rgb'
 USE_GENERATORS = True
@@ -25,7 +25,6 @@ NOISE_FACTOR = 0
 BATCH_SIZE = 50 # the trainingset must be dividable with batches_size
 EPOCHS = 10000
 KL_FACTOR = 0.5 # 1 = only KL, 0 = only Reconstruction Loss
-SAVE_WEIGHTS_FREQ = 50 # How often to save weights (n epochs)
 
 """ Debug """
 PRINT_MODEL_SUMMARY = True

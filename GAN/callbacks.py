@@ -1,5 +1,7 @@
-import os
+import os, math
 import cv2 as cv
+
+import matplotlib.pyplot as plt
 
 from keras.callbacks import Callback
 from visualization import plotLatentSpace2D
@@ -29,3 +31,30 @@ class PlotLatentSpaceProgress(Callback):
 
   def on_epoch_end(self, epoch, logs):
     cv.destroyAllWindows()
+
+class PlotLosses(Callback):
+  def __init__(self):
+    self.d_loss = []
+    self.g_loss = []
+    self.baseline = []
+    self.base_line_value = -math.log(0.5)
+
+    self.fig = plt.figure()
+    plt.ion()
+    plt.show()
+
+  def on_epoch_end(self, epoch, logs={}):
+
+    self.d_loss.append(logs.get('d_loss'))
+    self.g_loss.append(logs.get('g_loss'))
+    self.baseline.append(self.base_line_value)
+
+    x = [i+1 for i in range(len(self.d_loss))]
+
+    plt.clf()
+    plt.plot(x, self.d_loss, label="Discriminator Loss")
+    plt.plot(x, self.g_loss, label="Generator Loss")
+    plt.plot(x, self.baseline, label="50/50 Line")
+    plt.legend()
+    plt.draw()
+    plt.pause(0.001)

@@ -22,7 +22,7 @@ DROPUT_AMOUNT = 0.4
 NOISE_FACTOR = 0
 
 """ Training """
-BATCH_SIZE = 50 # the trainingset must be dividable with batches_size
+BATCH_SIZE = 100 # the trainingset must be dividable with batches_size
 EPOCHS = 10000
 KL_FACTOR = 0.5 # 1 = only KL, 0 = only Reconstruction Loss
 SAVE_WEIGHTS_FREQ = 50 # How often to save weights (n epochs)
