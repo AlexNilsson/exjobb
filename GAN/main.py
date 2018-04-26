@@ -141,17 +141,24 @@ DISC_TRAIN_THRESH = -math.log(0.5) # ~cross entropy loss at 50% correct classifi
 
 batches = math.floor(N_DATA/C.BATCH_SIZE)
 
-d_loss = math.inf
-g_loss = math.inf
+
+d_loss_epoch = math.inf
+g_loss_epoch = math.inf
 
 for epoch in range(1, C.EPOCHS + 1):
+
+  train_d = d_loss_epoch > DISC_TRAIN_THRESH or ( d_loss_epoch < DISC_TRAIN_THRESH and g_loss_epoch < DISC_TRAIN_THRESH )
+  train_g = g_loss_epoch > DISC_TRAIN_THRESH or ( d_loss_epoch < DISC_TRAIN_THRESH and g_loss_epoch < DISC_TRAIN_THRESH )
+
+  d_loss_epoch = []
+  g_loss_epoch = []
 
   latent_space_progress.on_epoch_begin(epoch, None)
 
   for bath_idx in range(data_generator.__len__()):
     batch = data_generator.__getitem__(bath_idx)
 
-    if d_loss > DISC_TRAIN_THRESH or ( d_loss < DISC_TRAIN_THRESH and g_loss < DISC_TRAIN_THRESH ):
+    if True:
       """ Train Discriminator """
       # Select a random half batch of images
       real_data = batch[np.random.randint(0, int(C.BATCH_SIZE), int(C.BATCH_SIZE/2))]
@@ -165,8 +172,9 @@ for epoch in range(1, C.EPOCHS + 1):
       d_loss_real = GAN.discriminator.train_on_batch(real_data, np.ones((int(C.BATCH_SIZE/2), 1)))
       d_loss_fake = GAN.discriminator.train_on_batch(fake_data, np.zeros((int(C.BATCH_SIZE/2), 1)))
       d_loss = np.mean([d_loss_real, d_loss_fake])
+      d_loss_epoch.append(d_loss)
 
-    if g_loss > DISC_TRAIN_THRESH or ( d_loss < DISC_TRAIN_THRESH and g_loss < DISC_TRAIN_THRESH ):
+    if True:
       """ Train Generator """
       # Sample generator input
       noise = np.random.normal(0, 1, (int(C.BATCH_SIZE), int(C.Z_LAYER_SIZE)))
@@ -174,13 +182,16 @@ for epoch in range(1, C.EPOCHS + 1):
       # Train the generator to fool the discriminator, e.g. classify these images as real (1)
       # The discriminator model is frozen in this stage but its gradient is still used to guide the generator
       g_loss = GAN.combined.train_on_batch(noise, np.ones((C.BATCH_SIZE, 1)))
+      g_loss_epoch.append(g_loss)
 
     # Plot the progress
     print("Epoch:{} Batch:{}/{} [D loss: {}] [G loss: {}]".format(epoch, bath_idx+1, batches, d_loss, g_loss))
 
+  d_loss_epoch = np.mean(d_loss_epoch)
+  g_loss_epoch = np.mean(g_loss_epoch)
 
   latent_space_progress.on_epoch_end(epoch, None)
-  plot_losses.on_epoch_end(epoch, {'d_loss': d_loss, 'g_loss': g_loss})
+  plot_losses.on_epoch_end(epoch, {'d_loss': d_loss_epoch, 'g_loss': g_loss_epoch})
   data_generator.on_epoch_end()
 
   if epoch % C.SAVE_WEIGHTS_FREQ == 0:
