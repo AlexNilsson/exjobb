@@ -1,6 +1,5 @@
 **/node_modules
 **/__pycache__
 **package-lock.json
-**/epoch_plots/*
 **/shape_resized/*
 **/resized/*
