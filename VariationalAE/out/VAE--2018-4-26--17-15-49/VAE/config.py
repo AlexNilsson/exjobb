@@ -22,17 +22,15 @@ DROPUT_AMOUNT = 0.4
 NOISE_FACTOR = 0
 
 """ Training """
-BATCH_SIZE = 55 # the trainingset must be dividable with batches_size
+BATCH_SIZE = 50 # the trainingset must be dividable with batches_size
 EPOCHS = 10000
 KL_FACTOR = 0.5 # 1 = only KL, 0 = only Reconstruction Loss
-SAVE_WEIGHTS_FREQ = 50 # How often to save weights (n epochs)
 
 """ Debug """
 PRINT_MODEL_SUMMARY = True
 TRAIN_VERBOSITY = 1 # Verbosity mode. 0 = silent, 1 = progress bar, 2 = one line per epoch.
 
-PLOT_LATENT_SPACE_EVERY = 1 #How often to plot the latent space, 1= every epoch, 10 every 10th etc.
-PLOT_LOSS_EVERY = 50 #How often to plot the loss plot, 1= every epoch, 10 every 10th etc.
+PLOT_LATENT_SPACE_EVERY = 10 #How often to plot the latent space, 1= every epoch, 10 every 10th etc.
 PLOT_SIZE = 720 #px
 LATENT_SPACE_TILING = 15
 SHOW_LATENT_PLOT = False

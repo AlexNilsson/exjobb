@@ -33,7 +33,10 @@ class PlotLatentSpaceProgress(Callback):
     cv.destroyAllWindows()
 
 class PlotLosses(Callback):
-  def __init__(self):
+  def __init__(self, path_to_save_directory = './loss_plots'):
+
+    self.path_to_save_directory = path_to_save_directory
+
     self.d_loss = []
     self.g_loss = []
     self.baseline = []
@@ -58,3 +61,6 @@ class PlotLosses(Callback):
     plt.legend()
     plt.draw()
     plt.pause(0.001)
+
+    if epoch % C.PLOT_LOSS_EVERY == 0:
+      plt.savefig( os.path.join(self.path_to_save_directory, 'loss_plot_{}.png'.format(epoch)))
