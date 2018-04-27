@@ -2,3 +2,6 @@
 **/__pycache__
 **package-lock.json
 **/epoch_plots/*
+**/resized_images/*
+**/shape_resized/*
+data/shapes/shape_resized
