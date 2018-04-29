@@ -2,7 +2,7 @@ import importlib
 
 """ Setup """
 # name of model to load: ./models/<name>
-NAME = 'DCGAN'
+NAME = 'DCGAN_2'
 
 """ Load Model Config & Architecture """
 REL_PATH_TO_MODELS_DIR = 'models'
