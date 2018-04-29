@@ -18,10 +18,14 @@ def plotLatentSpace2D(model, tiling = 15, img_size = 720, max_dist_from_mean = 1
 
   for i, yi in enumerate(grid_x):
     for j, xi in enumerate(grid_y):
-      z_sample = np.array([[xi, yi]])
+      z_sample = np.ones(C.Z_LAYER_SIZE) * yi
+      z_sample[0] = xi
+      z_sample = np.array([z_sample])
+      #z_sample = np.array([[xi, yi]])
       x_decoded = model.predict(z_sample)
       visualisation_image = x_decoded[0].reshape(C.IMG_SIZE, C.IMG_SIZE, channels)
       visualisation_image = cv.resize(visualisation_image, (tile_size, tile_size))
+      visualisation_image = visualisation_image[...,::-1] #bgr to rgb
       figure[i * tile_size: (i + 1) * tile_size,
               j * tile_size: (j + 1) * tile_size, :] = visualisation_image
 

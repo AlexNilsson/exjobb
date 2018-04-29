@@ -5,7 +5,7 @@ SAVE_MODEL_WHEN_DONE = False
 
 """ Data """
 DATASET = 'windows'
-IMG_SIZE = 64 # 320 # must be dividable by 8
+IMG_SIZE = 256 # 320 # must be dividable by 8
 COLOR_MODE = 'rgb' # 'grayscale' or 'rgb'
 USE_GENERATORS = True
 
@@ -22,7 +22,7 @@ DROPUT_AMOUNT = 0.4
 NOISE_FACTOR = 0
 
 """ Training """
-BATCH_SIZE = 50 # the trainingset must be dividable with batches_size
+BATCH_SIZE = 300 # the trainingset must be dividable with batches_size
 EPOCHS = 10000
 KL_FACTOR = 0.5 # 1 = only KL, 0 = only Reconstruction Loss
 
