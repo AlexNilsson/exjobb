@@ -23,6 +23,7 @@ def plotLatentSpace2D(model, tiling = 15, img_size = 720, max_dist_from_mean = 1
       z_sample = np.array([z_sample])
       #z_sample = np.array([[xi, yi]])
       x_decoded = model.predict(z_sample)
+      
       visualisation_image = x_decoded[0].reshape(C.IMG_SIZE, C.IMG_SIZE, channels)
       visualisation_image = cv.resize(visualisation_image, (tile_size, tile_size))
       visualisation_image = visualisation_image[...,::-1] #bgr to rgb
