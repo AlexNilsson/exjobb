@@ -1,5 +1,7 @@
 import os, shutil, argparse
 
+""" clearTrainingSession 'PATH/TO/FOLDER' -n 2 """
+
 #PATH_TO_THIS_DIR = os.path.dirname(__file__) 
 
 def removeEmptySessions( session_directory, min_epoch_plots=2 ):
