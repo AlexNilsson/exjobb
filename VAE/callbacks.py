@@ -39,7 +39,7 @@ class PlotLosses(Callback):
     self.path_to_save_directory = path_to_save_directory
 
     self.loss = []
-    self.loss_rm100 = []
+    self.loss_rm20 = []
 
     self.fig = plt.figure()
     plt.ion()
@@ -48,15 +48,15 @@ class PlotLosses(Callback):
   def on_batch_end(self, batch, logs={}):
 
     self.loss.append(logs.get('loss'))
-    self.loss_rm100.append(np.mean(self.loss[-100:]))
+    self.loss_rm20.append(np.mean(self.loss[-20:]))
 
-    loss = self.loss[-50:]
-    loss_rm100 = self.loss_rm100[-50:]
+    loss = self.loss[-100:]
+    loss_rm20 = self.loss_rm20[-100:]
     x = [i+1 for i in range(len(loss))]
 
     plt.clf()
     plt.semilogy(x, loss, label="Loss")
-    plt.semilogy(x, loss_rm100, label="Loss rm100")
+    plt.semilogy(x, loss_rm20, label="Loss rm20")
     plt.legend()
     plt.draw()
     plt.pause(0.001)
