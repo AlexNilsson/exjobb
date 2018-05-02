@@ -1,5 +1,8 @@
-import os
+import os, math
 import cv2 as cv
+import numpy as np
+
+import matplotlib.pyplot as plt
 
 from keras.callbacks import Callback
 from visualization import plotLatentSpace2D
@@ -16,7 +19,7 @@ class PlotLatentSpaceProgress(Callback):
     self.path_to_save_directory = path_to_save_directory
     self.save_name = save_name
 
-  def on_epoch_begin(self, epoch, logs=None):
+  def on_epoch_begin(self, epoch, logs):
     if epoch % C.PLOT_LATENT_SPACE_EVERY == 0:
       latentSpacePlot = self.plot()
 
@@ -27,5 +30,37 @@ class PlotLatentSpaceProgress(Callback):
         file_path = os.path.join(self.path_to_save_directory, '{}-{}.jpg'.format(epoch, self.save_name))
         cv.imwrite(file_path, figure_to_file)
 
-  def on_epoch_end(self, epoch, logs=None):
+  def on_epoch_end(self, epoch, logs):
     cv.destroyAllWindows()
+
+class PlotLosses(Callback):
+  def __init__(self, path_to_save_directory = './loss_plots'):
+
+    self.path_to_save_directory = path_to_save_directory
+
+    self.loss = []
+    self.loss_rm20 = []
+
+    self.fig = plt.figure()
+    plt.ion()
+    plt.show()
+
+  def on_batch_end(self, batch, logs={}):
+
+    self.loss.append(logs.get('loss'))
+    self.loss_rm20.append(np.mean(self.loss[-20:]))
+
+    loss = self.loss[-100:]
+    loss_rm20 = self.loss_rm20[-100:]
+    x = [i+1 for i in range(len(loss))]
+
+    plt.clf()
+    plt.semilogy(x, loss, label="Loss")
+    plt.semilogy(x, loss_rm20, label="Loss rm20")
+    plt.legend()
+    plt.draw()
+    plt.pause(0.001)
+
+  def on_epoch_end(self, epoch, logs={}):
+    if epoch % C.SAVE_LOSS_PLOT_FREQ == 0:
+      plt.savefig( os.path.join(self.path_to_save_directory, 'loss_plot_{}.png'.format(epoch)))

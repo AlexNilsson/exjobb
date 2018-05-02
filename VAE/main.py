@@ -20,7 +20,7 @@ import model as M
 from model import config as C
 from model import architecture
 
-from callbacks import PlotLatentSpaceProgress
+from callbacks import PlotLatentSpaceProgress, PlotLosses
 from generators import getDataPairGenerator
 from processing import preProcessImages, flattenImagesIntoArray, addNoiseToArray
 
@@ -35,12 +35,14 @@ PATH_TO_OUT_DIRECTORY = os.path.join(PATH_TO_THIS_DIR, 'out', THIS_ID)
 
 # sub folders
 PATH_TO_EPOCH_PLOTS = os.path.join(PATH_TO_OUT_DIRECTORY, 'epoch_plots')
+PATH_TO_LOSS_PLOTS = os.path.join(PATH_TO_OUT_DIRECTORY, 'loss_plots')
 PATH_TO_SAVED_WEIGHTS = os.path.join(PATH_TO_OUT_DIRECTORY, 'saved_weights')
 PATH_TO_SAVED_MODELS = os.path.join(PATH_TO_OUT_DIRECTORY, 'saved_models')
 
 # create folders if they do not already exist
 os.makedirs(PATH_TO_OUT_DIRECTORY, exist_ok = True)
 os.makedirs(PATH_TO_EPOCH_PLOTS, exist_ok = True)
+os.makedirs(PATH_TO_LOSS_PLOTS, exist_ok = True)
 os.makedirs(PATH_TO_SAVED_WEIGHTS, exist_ok = True)
 os.makedirs(PATH_TO_SAVED_MODELS, exist_ok = True)
 
@@ -121,7 +123,7 @@ if C.PRINT_MODEL_SUMMARY:
 
 """ TRAINING """
 # Optimizer
-vae.compile(optimizer = 'adam', loss = VAE.loss_function)
+vae.compile(optimizer = VAE.optimizer, loss = VAE.loss_function)
 
 # Training Callback: Latent space progress
 latent_space_progress = PlotLatentSpaceProgress(
@@ -143,6 +145,11 @@ weights_checkpoint_callback = ModelCheckpoint(
   save_weights_only = True
 )
 
+# Training Callback: Plot Losses
+plot_losses = PlotLosses(
+  path_to_save_directory = PATH_TO_LOSS_PLOTS
+)
+
 # Train Model
 if C.USE_GENERATORS:
   # Fit using data from generators
@@ -153,7 +160,7 @@ if C.USE_GENERATORS:
     validation_data = val_data_pair_generator,
     validation_steps = math.ceil((N_DATA/C.BATCH_SIZE)/10),
     shuffle = C.SHUFFLE,
-    callbacks = [latent_space_progress, weights_checkpoint_callback],
+    callbacks = [latent_space_progress, weights_checkpoint_callback, plot_losses],
     use_multiprocessing = False,
     verbose = C.TRAIN_VERBOSITY
   )
@@ -165,7 +172,7 @@ else:
     epochs = C.EPOCHS,
     batch_size = C.BATCH_SIZE,
     validation_data = (x_test, x_test_ref),
-    callbacks = [latent_space_progress, weights_checkpoint_callback],
+    callbacks = [latent_space_progress, weights_checkpoint_callback, plot_losses],
     verbose = C.TRAIN_VERBOSITY
   )
 
