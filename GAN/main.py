@@ -172,7 +172,7 @@ for epoch in range(1, C.EPOCHS + 1):
     
     rm_d = np.mean(g_loss_rm)/np.mean(d_loss_rm)
 
-    ''' if d_turn:
+    if d_turn:
       train_d = True
       train_g = False
       if batch_idx % 25 == 0:
@@ -189,7 +189,7 @@ for epoch in range(1, C.EPOCHS + 1):
 
     if np.mean(d_loss_rm[-20:]) > np.mean(g_loss_rm[-20:]):
       train_d = True
-      train_g = False '''
+      train_g = False
 
     ''' if d_turn:
       train_d = True
@@ -208,12 +208,12 @@ for epoch in range(1, C.EPOCHS + 1):
 
     #train_d = d_turn and batch_idx % 10 #batch_idx % math.ceil(rm_d) == 0 and np.mean(g_loss_rm) < DISC_TRAIN_THRESH
     #train_g = d_turn == False and batch_idx % 5 #rm_d >1 or batch_idx % 20 == 0
-    if batch_idx % 2 == 0:
+    ''' if batch_idx % 2 == 0:
       train_d = True
       train_g = False
     else:
       train_d = False
-      train_g = True
+      train_g = True '''
 
     """ Train Discriminator """
     # Select a random half batch of images

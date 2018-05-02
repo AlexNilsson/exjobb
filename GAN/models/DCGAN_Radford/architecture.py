@@ -61,23 +61,23 @@ class GAN:
     x = img
     # (64, 64, 3)
 
-    x = Conv2D(64, 5, strides=2, activation='tanh', padding='same')(x)
-    #x = LeakyReLU(alpha=0.2)(x)
+    x = Conv2D(64, 5, strides=2, padding='same')(x)
+    x = LeakyReLU(alpha=0.2)(x)
     x = BatchNormalization(momentum=0.8)(x)
     # (32, 32, 64)
 
-    x = Conv2D(128, 5, strides=2, activation='tanh', padding='same')(x)
-    #x = LeakyReLU(alpha=0.2)(x)
+    x = Conv2D(128, 5, strides=2, padding='same')(x)
+    x = LeakyReLU(alpha=0.2)(x)
     x = BatchNormalization(momentum=0.8)(x)
     # (16, 16, 128)
 
-    x = Conv2D(256, 5, strides=2, activation='tanh', padding='same')(x)
-    #x = LeakyReLU(alpha=0.2)(x)
+    x = Conv2D(256, 5, strides=2, padding='same')(x)
+    x = LeakyReLU(alpha=0.2)(x)
     x = BatchNormalization(momentum=0.8)(x)
     # (8, 8, 256)
 
-    x = Conv2D(512, 5, strides=2, activation='tanh', padding='same')(x)
-    #x = LeakyReLU(alpha=0.2)(x)
+    x = Conv2D(512, 5, strides=2, padding='same')(x)
+    x = LeakyReLU(alpha=0.2)(x)
     x = BatchNormalization(momentum=0.8)(x)
     # (4, 4, 512)
 
