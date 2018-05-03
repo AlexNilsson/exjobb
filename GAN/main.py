@@ -175,14 +175,14 @@ for epoch in range(1, C.EPOCHS + 1):
     if d_turn:
       train_d = True
       train_g = False
-      if batch_idx % 25 == 0:
+      if batch_idx % 5 == 0:
         train_d = False
         train_g = True
         d_turn = False
     else:
       train_d = False
       train_g = True
-      if batch_idx % 10 == 0:
+      if batch_idx % 1 == 0:
         train_d = True
         train_g = False
         d_turn = True
@@ -218,12 +218,12 @@ for epoch in range(1, C.EPOCHS + 1):
     """ Train Discriminator """
     # Select a random half batch of images
     real_data = batch[np.random.randint(0, int(C.BATCH_SIZE), int(C.BATCH_SIZE/2))]
+    real_data = (real_data*2) - 1 #[0,1] -> [-1,1]
 
     # Sample noise and generate a half batch of new images
     #flat_img_length = batch.shape[1]
     noise = np.random.normal(-1, 1, (int(C.BATCH_SIZE/2), int(C.Z_LAYER_SIZE)))
     fake_data = GAN.generator.predict(noise)
-    fake_data = (fake_data + 1) * 0.5 # [-1,1] -> [0,1]
 
     # Train discriminator half as much as generator
     if train_d:
@@ -240,7 +240,7 @@ for epoch in range(1, C.EPOCHS + 1):
 
     """ Train Generator """
     # Sample generator input
-    noise = np.random.normal(0, 1, (int(C.BATCH_SIZE), int(C.Z_LAYER_SIZE)))
+    noise = np.random.normal(-1, 1, (int(C.BATCH_SIZE), int(C.Z_LAYER_SIZE)))
 
     if train_g:
       # Train the generator to fool the discriminator, e.g. classify these images as real (1)
