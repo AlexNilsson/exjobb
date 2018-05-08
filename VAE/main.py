@@ -20,7 +20,7 @@ import model as M
 from model import config as C
 from model import architecture
 
-from callbacks import PlotLatentSpaceProgress, PlotLosses
+from callbacks import PlotLatentSpaceProgress, PlotLosses, LogLosses
 from generators import getDataPairGenerator
 from processing import preProcessImages, flattenImagesIntoArray, addNoiseToArray
 
@@ -32,15 +32,18 @@ t = datetime.now()
 # Create a new output directory for this training session with a unique name
 THIS_ID = "{}--{}-{}-{}--{}-{}-{}".format(M.NAME, t.year, t.month, t.day, t.hour, t.minute, t.second)
 PATH_TO_OUT_DIRECTORY = os.path.join(PATH_TO_THIS_DIR, 'out', THIS_ID)
+PATH_TO_LOGS_DIRECTORY = os.path.join(PATH_TO_OUT_DIRECTORY, 'logs')
 
 # sub folders
 PATH_TO_EPOCH_PLOTS = os.path.join(PATH_TO_OUT_DIRECTORY, 'epoch_plots')
 PATH_TO_LOSS_PLOTS = os.path.join(PATH_TO_OUT_DIRECTORY, 'loss_plots')
+PATH_TO_LOAD_WEIGHTS = os.path.join(PATH_TO_THIS_DIR, C.LOAD_FROM_DIRECTORY, 'saved_weights')
 PATH_TO_SAVED_WEIGHTS = os.path.join(PATH_TO_OUT_DIRECTORY, 'saved_weights')
 PATH_TO_SAVED_MODELS = os.path.join(PATH_TO_OUT_DIRECTORY, 'saved_models')
 
 # create folders if they do not already exist
 os.makedirs(PATH_TO_OUT_DIRECTORY, exist_ok = True)
+os.makedirs(PATH_TO_LOGS_DIRECTORY, exist_ok = True)
 os.makedirs(PATH_TO_EPOCH_PLOTS, exist_ok = True)
 os.makedirs(PATH_TO_LOSS_PLOTS, exist_ok = True)
 os.makedirs(PATH_TO_SAVED_WEIGHTS, exist_ok = True)
@@ -105,7 +108,7 @@ vae = VAE.model
 # Load saved weights
 if C.LOAD_SAVED_WEIGHTS:
   before_weight_load = vae.get_weights()
-  vae.load_weights(os.path.join(PATH_TO_SAVED_WEIGHTS, 'weight.hdf5'), by_name=False)
+  vae.load_weights(os.path.join(PATH_TO_LOAD_WEIGHTS, 'weight.hdf5'), by_name=False)
   after_weight_load = vae.get_weights()
   print('before_weight_load')
   print(before_weight_load)
@@ -150,6 +153,11 @@ plot_losses = PlotLosses(
   path_to_save_directory = PATH_TO_LOSS_PLOTS
 )
 
+# Training Callback: Log Losses
+log_losses = LogLosses(
+  log_file = os.path.join(PATH_TO_LOGS_DIRECTORY, 'loss.log')
+)
+
 # Train Model
 if C.USE_GENERATORS:
   # Fit using data from generators
@@ -160,9 +168,10 @@ if C.USE_GENERATORS:
     validation_data = val_data_pair_generator,
     validation_steps = math.ceil((N_DATA/C.BATCH_SIZE)/10),
     shuffle = C.SHUFFLE,
-    callbacks = [latent_space_progress, weights_checkpoint_callback, plot_losses],
+    callbacks = [latent_space_progress, weights_checkpoint_callback, log_losses],
     use_multiprocessing = False,
-    verbose = C.TRAIN_VERBOSITY
+    verbose = C.TRAIN_VERBOSITY,
+    initial_epoch = C.INIT_EPOCH if C.LOAD_SAVED_WEIGHTS else 0
   )
 else:
   # Fit using data already in memory
@@ -173,7 +182,8 @@ else:
     batch_size = C.BATCH_SIZE,
     validation_data = (x_test, x_test_ref),
     callbacks = [latent_space_progress, weights_checkpoint_callback, plot_losses],
-    verbose = C.TRAIN_VERBOSITY
+    verbose = C.TRAIN_VERBOSITY,
+    initial_epoch = C.INIT_EPOCH if C.LOAD_SAVED_WEIGHTS else 0
   )
 
 # Save model on completion
