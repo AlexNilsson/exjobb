@@ -14,7 +14,7 @@ class VAE:
     self.encoder = self.buildEncoder(self.inputs)
     self.decoder = self.buildDecoder()
     self.model = self.buildModel()
-    self.optimizer = Adam(lr=C.LEARNING_RATE, beta_1=0.5, amsgrad=True)
+    self.optimizer = Adam(lr=0.0001, beta_1=0.5, amsgrad=True)
 
   def buildEncoder(self, input_tensor):
     """ Builds the Encoder Model """

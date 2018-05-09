@@ -23,7 +23,7 @@ DROPUT_AMOUNT = 0.4
 NOISE_FACTOR = 0
 
 """ Training """
-LEARNING_RATE = 1e-07
+LEARNING_RATE = 1e-06
 BATCH_SIZE = 415 # the trainingset must be dividable with batches_size
 EPOCHS = 20000
 KL_FACTOR = 0.5 # 1 = only KL, 0 = only Reconstruction Loss

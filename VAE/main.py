@@ -39,6 +39,8 @@ PATH_TO_LOSS_PLOTS = os.path.join(PATH_TO_OUT_DIRECTORY, 'loss_plots')
 PATH_TO_SAVED_WEIGHTS = os.path.join(PATH_TO_OUT_DIRECTORY, 'saved_weights')
 PATH_TO_SAVED_MODELS = os.path.join(PATH_TO_OUT_DIRECTORY, 'saved_models')
 
+PATH_TO_LOAD_WEIGHTS = os.path.join(PATH_TO_THIS_DIR, C.LOAD_FROM_DIRECTORY, 'saved_weights')
+
 # create folders if they do not already exist
 os.makedirs(PATH_TO_OUT_DIRECTORY, exist_ok = True)
 os.makedirs(PATH_TO_EPOCH_PLOTS, exist_ok = True)
@@ -105,7 +107,7 @@ vae = VAE.model
 # Load saved weights
 if C.LOAD_SAVED_WEIGHTS:
   before_weight_load = vae.get_weights()
-  vae.load_weights(os.path.join(PATH_TO_SAVED_WEIGHTS, 'weight.hdf5'), by_name=False)
+  vae.load_weights(os.path.join(PATH_TO_LOAD_WEIGHTS, 'weight.hdf5'), by_name=False)
   after_weight_load = vae.get_weights()
   print('before_weight_load')
   print(before_weight_load)
@@ -162,7 +164,8 @@ if C.USE_GENERATORS:
     shuffle = C.SHUFFLE,
     callbacks = [latent_space_progress, weights_checkpoint_callback, plot_losses],
     use_multiprocessing = False,
-    verbose = C.TRAIN_VERBOSITY
+    verbose = C.TRAIN_VERBOSITY,
+    initial_epoch = C.INIT_EPOCH
   )
 else:
   # Fit using data already in memory
