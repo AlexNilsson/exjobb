@@ -14,7 +14,7 @@ class VAE:
     self.encoder = self.buildEncoder(self.inputs)
     self.decoder = self.buildDecoder()
     self.model = self.buildModel()
-    self.optimizer = Adam(lr=1e-06, beta_1=0.5, amsgrad=True)
+    self.optimizer = Adam(lr=1e-04, beta_1=0.5, amsgrad=True)
 
   def buildEncoder(self, input_tensor):
     """ Builds the Encoder Model """
@@ -70,15 +70,15 @@ class VAE:
     x = BatchNormalization(momentum=0.8)(x)
     # (4, 4, 512)
 
-    x = Conv2DTranspose(256, 5, strides=2, activation='relu', padding='same')(x)
+    x = Conv2DTranspose(512, 5, strides=2, activation='relu', padding='same')(x)
     x = BatchNormalization(momentum=0.8)(x)
     # (8, 8, 256)
 
-    x = Conv2DTranspose(128, 5, strides=2, activation='relu', padding='same')(x)
+    x = Conv2DTranspose(512, 5, strides=2, activation='relu', padding='same')(x)
     x = BatchNormalization(momentum=0.8)(x)
     # (16, 16, 128)
 
-    x = Conv2DTranspose(64, 5, strides=2, activation='relu', padding='same')(x)
+    x = Conv2DTranspose(512, 5, strides=2, activation='relu', padding='same')(x)
     x = BatchNormalization(momentum=0.8)(x)
     # (32, 32, 64)
 
