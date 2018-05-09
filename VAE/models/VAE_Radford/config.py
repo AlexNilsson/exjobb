@@ -1,6 +1,6 @@
 """ Load / Save Model"""
 LOAD_SAVED_WEIGHTS = True
-LOAD_FROM_DIRECTORY = 'out/VAE_Radford--2018-5-4--18-22-35'
+LOAD_FROM_DIRECTORY = 'out/VAE_Radford--2018-5-7--8-31-33'
 INIT_EPOCH = 7500
 SAVE_MODEL_WHEN_DONE = False
 
