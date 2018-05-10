@@ -10,8 +10,11 @@ Contains training sets for deep learning
 * cats & dogs
 * shapes
 
-### VariationalAE
+### VAE
 Variational Autoencoder model
+
+### GAN
+Generative Adversarial Network model
 
 ### [WebbApp](./WebbApp/README.md)
 Web application showcasing latent space interpolation of a Variational Autoencoder

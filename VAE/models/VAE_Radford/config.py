@@ -1,7 +1,7 @@
 """ Load / Save Model"""
-LOAD_SAVED_WEIGHTS = True
-LOAD_FROM_DIRECTORY = 'out/VAE_Radford--2018-5-7--8-31-33'
-INIT_EPOCH = 7500
+LOAD_SAVED_WEIGHTS = False
+LOAD_FROM_DIRECTORY = 'out/VAE_Radford--2018-5-4--17-37-2'
+INIT_EPOCH = 10500
 SAVE_MODEL_WHEN_DONE = False
 
 """ Data """
@@ -25,7 +25,7 @@ NOISE_FACTOR = 0
 """ Training """
 LEARNING_RATE = 1e-07
 BATCH_SIZE = 415 # the trainingset must be dividable with batches_size
-EPOCHS = 20000
+EPOCHS = 100000
 KL_FACTOR = 0.5 # 1 = only KL, 0 = only Reconstruction Loss
 
 """ Debug """

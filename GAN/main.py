@@ -103,17 +103,18 @@ if C.LOAD_SAVED_WEIGHTS:
 
 """ TRAINING """
 # Optimizer
-optimizer = Adam(0.0001, 0.4)
+optimizer_g  = Adam(0.0002, 0.5, amsgrad=True)
+optimizer_d = Adam(0.0004, 0.5, amsgrad=True)
 
 # compile Generator model
-GAN.generator.compile(loss = 'binary_crossentropy', optimizer = optimizer)
+GAN.generator.compile(loss = 'binary_crossentropy', optimizer = optimizer_g)
 
 # compile Discriminator model
-GAN.discriminator.compile(loss = 'binary_crossentropy', optimizer = optimizer)
+GAN.discriminator.compile(loss = 'binary_crossentropy', optimizer = optimizer_d)
 
 # compile Combined model, with frozen discriminator
 GAN.combined.get_layer(name='Discriminator').trainable = False
-GAN.combined.compile(loss = 'binary_crossentropy', optimizer = optimizer)
+GAN.combined.compile(loss = 'binary_crossentropy', optimizer = optimizer_g)
 
 # Print model summary
 if C.PRINT_MODEL_SUMMARY:
@@ -146,31 +147,86 @@ DISC_TRAIN_THRESH = -math.log(0.5) # ~cross entropy loss at 50% correct classifi
 batches = math.floor(N_DATA/C.BATCH_SIZE)
 
 # Arbitrary starting loss
-g_loss_epoch, d_loss_epoch = DISC_TRAIN_THRESH, DISC_TRAIN_THRESH
+#g_loss_epoch, d_loss_epoch = DISC_TRAIN_THRESH, DISC_TRAIN_THRESH
+g_loss, d_loss = DISC_TRAIN_THRESH, DISC_TRAIN_THRESH
+
+# running means
+d_loss_rm = np.ones(40)
+g_loss_rm = np.ones(40)
+
+d_turn = True
+turn_counter = 10
+train_d, train_g = True, True
 
 for epoch in range(1, C.EPOCHS + 1):
 
-  train_d = d_loss_epoch >= DISC_TRAIN_THRESH or ( d_loss_epoch <= DISC_TRAIN_THRESH and g_loss_epoch <= DISC_TRAIN_THRESH )
-  train_g = g_loss_epoch >= DISC_TRAIN_THRESH or ( d_loss_epoch <= DISC_TRAIN_THRESH and g_loss_epoch <= DISC_TRAIN_THRESH )
+  #train_d = d_loss_epoch < g_loss_epoch + 1
+  #train_g = g_loss_epoch < d_loss_epoch + 1
 
-  g_loss_epoch, d_loss_epoch = [g_loss_epoch], [d_loss_epoch]
+  #g_loss_epoch, d_loss_epoch = [g_loss_epoch], [d_loss_epoch]
 
   latent_space_progress.on_epoch_begin(epoch, None)
 
-  for bath_idx in range(data_generator.__len__()):
-    batch = data_generator.__getitem__(bath_idx)
+  for batch_idx in range(data_generator.__len__()):
+    batch = data_generator.__getitem__(batch_idx)
+    
+    rm_d = np.mean(g_loss_rm)/np.mean(d_loss_rm)
+
+    if d_turn:
+      train_d = True
+      train_g = False
+      if batch_idx % 5 == 0:
+        train_d = False
+        train_g = True
+        d_turn = False
+    else:
+      train_d = False
+      train_g = True
+      if batch_idx % 1 == 0:
+        train_d = True
+        train_g = False
+        d_turn = True
+
+    if np.mean(d_loss_rm[-20:]) > np.mean(g_loss_rm[-20:]):
+      train_d = True
+      train_g = False
+
+    ''' if d_turn:
+      train_d = True
+      train_g = False
+      if np.mean(d_loss_rm[-5:]) < DISC_TRAIN_THRESH:
+        train_d = False
+        train_g = True
+        d_turn: False
+    else:
+      train_d = False
+      train_g = True
+      if np.mean(g_loss_rm[-10:]) < DISC_TRAIN_THRESH:
+        train_d = True
+        train_g = False
+        d_turn: True '''
+
+    #train_d = d_turn and batch_idx % 10 #batch_idx % math.ceil(rm_d) == 0 and np.mean(g_loss_rm) < DISC_TRAIN_THRESH
+    #train_g = d_turn == False and batch_idx % 5 #rm_d >1 or batch_idx % 20 == 0
+    ''' if batch_idx % 2 == 0:
+      train_d = True
+      train_g = False
+    else:
+      train_d = False
+      train_g = True '''
 
     """ Train Discriminator """
     # Select a random half batch of images
     real_data = batch[np.random.randint(0, int(C.BATCH_SIZE), int(C.BATCH_SIZE/2))]
+    real_data = (real_data*2) - 1 #[0,1] -> [-1,1]
 
     # Sample noise and generate a half batch of new images
     #flat_img_length = batch.shape[1]
-    noise = np.random.normal(0, 1, (int(C.BATCH_SIZE/2), int(C.Z_LAYER_SIZE)))
+    noise = np.random.normal(-1, 1, (int(C.BATCH_SIZE/2), int(C.Z_LAYER_SIZE)))
     fake_data = GAN.generator.predict(noise)
 
     # Train discriminator half as much as generator
-    if train_d and epoch % 3:
+    if train_d:
       # Train the discriminator (real classified as ones and generated as zeros), update loss accordingly
       d_loss_real = GAN.discriminator.train_on_batch(real_data, np.ones((int(C.BATCH_SIZE/2), 1)))
       d_loss_fake = GAN.discriminator.train_on_batch(fake_data, np.zeros((int(C.BATCH_SIZE/2), 1)))
@@ -180,11 +236,11 @@ for epoch in range(1, C.EPOCHS + 1):
       d_loss_fake = GAN.discriminator.test_on_batch(fake_data, np.zeros((int(C.BATCH_SIZE/2), 1)))
 
     d_loss = np.mean([d_loss_real, d_loss_fake])
-    d_loss_epoch.append(d_loss)
+    #d_loss_epoch.append(d_loss)
 
     """ Train Generator """
     # Sample generator input
-    noise = np.random.normal(0, 1, (int(C.BATCH_SIZE), int(C.Z_LAYER_SIZE)))
+    noise = np.random.normal(-1, 1, (int(C.BATCH_SIZE), int(C.Z_LAYER_SIZE)))
 
     if train_g:
       # Train the generator to fool the discriminator, e.g. classify these images as real (1)
@@ -193,16 +249,22 @@ for epoch in range(1, C.EPOCHS + 1):
     else:
       g_loss = GAN.combined.test_on_batch(noise, np.ones((C.BATCH_SIZE, 1)))
 
-    g_loss_epoch.append(g_loss)
+    #g_loss_epoch.append(g_loss)
+
+    d_loss_rm = np.append(d_loss_rm, d_loss+0.5)
+    d_loss_rm = d_loss_rm[-40:]
+
+    g_loss_rm = np.append(g_loss_rm, g_loss+0.5)
+    g_loss_rm = g_loss_rm[-40:]
 
     # Plot the progress
-    print("Epoch:{} Batch:{}/{} [D loss: {}] [G loss: {}]".format(epoch, bath_idx+1, batches, d_loss, g_loss))
+    print("Epoch:{} Batch:{}/{} [D loss: {}] [G loss: {}]".format(epoch, batch_idx+1, batches, d_loss, g_loss))
+    plot_losses.on_epoch_end(epoch*1000 + batch_idx+1, {'d_loss': np.mean(d_loss_rm), 'g_loss': np.mean(g_loss_rm)})
 
-  g_loss_epoch, d_loss_epoch = np.mean(g_loss_epoch), np.mean(d_loss_epoch)
+  #g_loss_epoch, d_loss_epoch = np.mean(g_loss_epoch), np.mean(d_loss_epoch)
 
   # Epoch on_end Callbacks
   latent_space_progress.on_epoch_end(epoch, None)
-  plot_losses.on_epoch_end(epoch, {'d_loss': d_loss_epoch, 'g_loss': g_loss_epoch})
   data_generator.on_epoch_end()
 
   if epoch % C.SAVE_WEIGHTS_FREQ == 0:
