@@ -41,6 +41,8 @@ PATH_TO_LOAD_WEIGHTS = os.path.join(PATH_TO_THIS_DIR, C.LOAD_FROM_DIRECTORY, 'sa
 PATH_TO_SAVED_WEIGHTS = os.path.join(PATH_TO_OUT_DIRECTORY, 'saved_weights')
 PATH_TO_SAVED_MODELS = os.path.join(PATH_TO_OUT_DIRECTORY, 'saved_models')
 
+PATH_TO_LOAD_WEIGHTS = os.path.join(PATH_TO_THIS_DIR, C.LOAD_FROM_DIRECTORY, 'saved_weights')
+
 # create folders if they do not already exist
 os.makedirs(PATH_TO_OUT_DIRECTORY, exist_ok = True)
 os.makedirs(PATH_TO_LOGS_DIRECTORY, exist_ok = True)

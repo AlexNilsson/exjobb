@@ -1,3 +1,4 @@
+import os
 import math
 import numpy as np
 import cv2 as cv
@@ -37,3 +38,43 @@ def plotLatentSpace2D(model, tiling = 15, img_size = 720, max_dist_from_mean = 1
     cv.waitKey(1)
 
   return figure
+
+def getLatentSpaceGrid(model, z_samples, img_size = 720, channels = 3):
+
+  n_samples = z_samples.shape[0]
+  tiling = int(np.ceil(np.sqrt(n_samples)))
+
+  # Calculate appropriate tile size
+  tile_size = math.ceil(img_size / tiling)
+
+  # Create an empty canvas of appropriate size (This may be slightly larger than img_size due to px rounding)
+  figure = np.zeros((tile_size * tiling, tile_size * tiling, channels))
+
+  x_samples = model.predict(z_samples)
+
+  for i in range(tiling):
+    for j in range(tiling):
+      n = i * tiling + j
+
+      if n >= n_samples:
+        break
+      else:
+        x = x_samples[n]
+
+        img = x.reshape(C.IMG_SIZE, C.IMG_SIZE, channels)
+        img = cv.resize(img, (tile_size, tile_size))
+        img = img[...,::-1] #bgr to rgb
+
+        figure[i * tile_size: (i + 1) * tile_size,
+                j * tile_size: (j + 1) * tile_size, :] = img
+
+  # Resize figure down to img_size (in case it is larger due to tile_size px rounding)
+  figure = cv.resize(figure, (img_size, img_size))
+  figure = figure * 255
+  figure = figure.astype('uint8')
+
+  return figure
+
+def saveImg(data, output_dir, name):
+  file_path = os.path.join(output_dir, name)
+  cv.imwrite(file_path, data)
