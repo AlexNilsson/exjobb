@@ -16,7 +16,7 @@ t = datetime.now()
 """ OUTPUT DIRECTORIES """
 # Create a new output directory for this training session with a unique name
 THIS_ID = "lsexp_{}--{}-{}-{}--{}-{}-{}".format(M.NAME, t.year, t.month, t.day, t.hour, t.minute, t.second)
-PATH_TO_OUT_DIRECTORY = os.path.join(PATH_TO_THIS_DIR, 'out', THIS_ID)
+PATH_TO_OUT_DIRECTORY = os.path.join(PATH_TO_THIS_DIR, 'out_exp', THIS_ID)
 os.makedirs(PATH_TO_OUT_DIRECTORY, exist_ok = True)
 
 PATH_TO_LOAD_WEIGHTS = os.path.join(PATH_TO_THIS_DIR, C.LOAD_FROM_DIRECTORY, 'saved_weights')
