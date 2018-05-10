@@ -24,7 +24,7 @@ class PlotLatentSpaceProgress(Callback):
 
       if self.save_plot:
         # reshape to get the right range when saving image to file
-        figure_to_file = latentSpacePlot * 255
+        figure_to_file = (latentSpacePlot + 1) * 0.5 * 255
         figure_to_file = figure_to_file.astype('uint8')
         file_path = os.path.join(self.path_to_save_directory, '{}-{}.jpg'.format(epoch, self.save_name))
         cv.imwrite(file_path, figure_to_file)

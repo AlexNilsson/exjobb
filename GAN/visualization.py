@@ -18,7 +18,8 @@ def plotLatentSpace2D(model, tiling = 15, img_size = 720, max_dist_from_mean = 1
 
   for i, yi in enumerate(grid_x):
     for j, xi in enumerate(grid_y):
-      z_sample = np.array([[xi, yi]])
+      z_sample = np.random.normal(-1, 1, C.Z_LAYER_SIZE)
+      z_sample = np.array([z_sample])
       x_decoded = model.predict(z_sample)
       visualisation_image = x_decoded[0].reshape(C.IMG_SIZE, C.IMG_SIZE, channels)
       visualisation_image = cv.resize(visualisation_image, (tile_size, tile_size))
