@@ -1,0 +1,4 @@
+lr: up till now: 0.00001 = 1e-05
+epoch:10385 
+loss: 22700
+
