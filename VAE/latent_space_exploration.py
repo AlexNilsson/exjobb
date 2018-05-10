@@ -63,7 +63,7 @@ if True:
 
 """ SAMPLE POINTS IN LATENT SPACE """
 N_SAMPLES_PER_IMG = 36
-N_IMAGES = 100
+N_IMAGES = 300
 
 # Print Grids of randomly sampled points
 img_size = int(np.ceil(np.sqrt(N_SAMPLES_PER_IMG)) * C.IMG_SIZE)
@@ -71,7 +71,7 @@ img_size = int(np.ceil(np.sqrt(N_SAMPLES_PER_IMG)) * C.IMG_SIZE)
 """ PLOT RANDOM LATENT SPACE POINTS"""
 if False:
   for i in range(N_IMAGES):
-    z_samples = np.random.normal(0, i+1, (N_SAMPLES_PER_IMG, C.Z_LAYER_SIZE))
+    z_samples = np.random.normal(0, i + np.abs(np.random.normal(0,3)), (N_SAMPLES_PER_IMG, C.Z_LAYER_SIZE))
 
     # Decode vectors and get image
     img = getLatentSpaceGrid(decoder, z_samples, img_size = img_size)
