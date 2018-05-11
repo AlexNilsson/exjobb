@@ -6,6 +6,14 @@ from PIL import Image
 
 from model import config as C
 
+def getImageForModelInput(path_to_img):
+  """ Returns an image array in the correct format for the model defined in the config file """
+  img = cv.imread(path_to_img, C.COLOR_MODE == 'rgb')
+  img = cv.resize(img, (C.IMG_SIZE, C.IMG_SIZE))
+  img = img / 255
+  img = img[...,::-1] #bgr to rgb
+  return img
+
 def plotLatentSpace2D(model, tiling = 15, img_size = 720, max_dist_from_mean = 1, show_plot = True, channels = 3):
 
   # Calculate appropriate tile size
@@ -104,7 +112,7 @@ def getReconstructionGrid(model, samples, img_size = 720, channels = 3):
         # add reconstructed img to canvas
         figure[i * tile_size: (i + 1) * tile_size,
                 j * tile_size: (j + 1) * tile_size, :] = img
-        
+
         # add original img to the row below
         original_img = cv.resize(samples[n], (tile_size, tile_size))
         original_img = original_img[...,::-1] #bgr to rgb

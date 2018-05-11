@@ -19,7 +19,7 @@ class VAE:
   def buildEncoder(self, input_tensor):
     """ Builds the Encoder Model """
     # returns: ( mu(input_tensor), log_sigma(input_tensor) )
-    
+
     x = input_tensor
     # (64, 64, 3)
 
@@ -65,22 +65,22 @@ class VAE:
 
     x = Reshape((1, 1, 1000))(x)
     # (1,1,1000)
-    
+
     x = Conv2DTranspose(512, 4, strides=1, activation='relu')(x)
     x = BatchNormalization(momentum=0.8)(x)
     # (4, 4, 512)
 
     x = Conv2DTranspose(512, 5, strides=2, activation='relu', padding='same')(x)
     x = BatchNormalization(momentum=0.8)(x)
-    # (8, 8, 256)
+    # (8, 8, 512)
 
     x = Conv2DTranspose(512, 5, strides=2, activation='relu', padding='same')(x)
     x = BatchNormalization(momentum=0.8)(x)
-    # (16, 16, 128)
+    # (16, 16, 512)
 
     x = Conv2DTranspose(512, 5, strides=2, activation='relu', padding='same')(x)
     x = BatchNormalization(momentum=0.8)(x)
-    # (32, 32, 64)
+    # (32, 32, 512)
 
     x = Conv2DTranspose(3, 5, strides=2, activation='sigmoid', padding='same')(x)
     # (64, 64, 3)
