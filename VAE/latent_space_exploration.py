@@ -9,7 +9,7 @@ from keras.preprocessing.image import ImageDataGenerator
 import model as M
 from model import config as C
 from model import architecture
-from visualization import saveImg, getLatentSpaceGrid, getImageForModelInput
+from visualization import saveImg, getLatentSpaceGrid, getReconstructionGrid, getImageForModelInput
 
 PATH_TO_THIS_DIR = os.path.dirname(__file__)
 
@@ -98,7 +98,6 @@ def encode_images(images, encoder, std = 0):
 
   return z_samples
 
-
 """ GET RANDOM LATENT VECTORS """
 def get_random_latent_space_points(n_points, std=1):
   for i in range(N_IMAGES):
@@ -143,7 +142,25 @@ def get_latent_lerp_of_train_data(encoder, data_samples, n_samples):
   return z_lerps
 
 
+""" RECONSTRUCTION OF REAL DATA """
+def get_reconstructed_train_data(vae, path_to_dataset, n_samples, img_size = 720):
+  # Plocks random data samples from the dataset
+  data_generator = ImageDataGenerator().flow_from_directory(
+    path_to_dataset,
+    target_size = (C.IMG_SIZE, C.IMG_SIZE),
+    batch_size = n_samples,
+    class_mode = None,
+    color_mode = C.COLOR_MODE
+  )
 
+  # Get one batch from generator
+  for batch in data_generator: break
+  batch = batch / 255
+
+  reconstructed_data = vae.predict(batch)
+
+  # Decode vectors and get image
+  return getReconstructionGrid(vae, batch, img_size = img_size)
 
 """ SAMPLE POINTS IN LATENT SPACE """
 if True:
@@ -152,7 +169,7 @@ if True:
   N_SAMPLES_PER_IMG = 36
 
   PATH_TO_DATASET_DATA = os.path.join(PATH_TO_DATASET, os.listdir(PATH_TO_DATASET)[0])
-  
+
   # Print Grids of randomly sampled points
   img_size = int(np.ceil(np.sqrt(N_SAMPLES_PER_IMG)) * C.IMG_SIZE)
 
@@ -181,7 +198,6 @@ if True:
     #data_samples = data_generator.__getitem__(i) / 255
     #z_vectors = get_latent_lerp_of_train_data(encoder, data_samples, N_SAMPLES_PER_IMG)
 
-    
     """ LERP: SQUARE WINDOW TO CIRCULAR WINDOW """
     if False:
       # Square wooden window, no mullions, white background
@@ -199,7 +215,7 @@ if True:
 
       # Octagon wooden window, no mullion, white background
       img_2 = getImageForModelInput( os.path.join(PATH_TO_DATASET_DATA, '61opbxtz7f.jpg'))
-     
+
       # Round wooden window, no mullions, white background
       img_3 = getImageForModelInput( os.path.join(PATH_TO_DATASET_DATA, '1xlmtz85qp.jpg'))
 
@@ -209,13 +225,13 @@ if True:
       z_vectors = np.append(img1_to_img2, img2_to_img3, axis=0)
 
     """ LATENT SPACE ARITHMIC: Mullions """
-    if True:
+    if False:
       # Square wooden window, no mullions, white background
       img_1 = getImageForModelInput( os.path.join(PATH_TO_DATASET_DATA, 'bhoaezom15.jpg'))
 
       # Square wooden window, with mullions, white background
       img_2 = getImageForModelInput( os.path.join(PATH_TO_DATASET_DATA, 'bhvrj5prhv.jpg'))
-     
+
       # Round wooden window, no mullions, white background
       img_3 = getImageForModelInput( os.path.join(PATH_TO_DATASET_DATA, '1xlmtz85qp.jpg'))
 
@@ -233,7 +249,10 @@ if True:
       z_vectors = np.array([ z_1, z_2, z_3, z_mullion, z_round_mullion, z_4, z_square_colorful ])
 
     # Decode vectors and get image
-    img = getLatentSpaceGrid(decoder, z_vectors, img_size = img_size)
+    #img = getLatentSpaceGrid(decoder, z_vectors, img_size = img_size)
+
+    """ RECONSTRUCTION OF REAL DATA """
+    img = get_reconstructed_train_data(vae, PATH_TO_DATASET, N_SAMPLES_PER_IMG, img_size=img_size)
 
     # Save the image
     saveImg(img, PATH_TO_OUT_DIRECTORY, 'latent_space_exploration-{}.jpg'.format(i))
