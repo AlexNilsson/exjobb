@@ -1,5 +1,8 @@
-**/node_modules
 **/__pycache__
 **package-lock.json
-**/shape_resized/*
-**/resized/*
+
+**/node_modules
+
+**/weight.hdf5
+**/out_exp/
+**/out/

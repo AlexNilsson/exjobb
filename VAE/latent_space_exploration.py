@@ -157,8 +157,6 @@ def get_reconstructed_train_data(vae, path_to_dataset, n_samples, img_size = 720
   for batch in data_generator: break
   batch = batch / 255
 
-  reconstructed_data = vae.predict(batch)
-
   # Decode vectors and get image
   return getReconstructionGrid(vae, batch, img_size = img_size)
 
