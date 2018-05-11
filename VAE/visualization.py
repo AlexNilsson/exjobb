@@ -6,6 +6,14 @@ from PIL import Image
 
 from model import config as C
 
+def getImageForModelInput(path_to_img):
+  """ Returns an image array in the correct format for the model defined in the config file """
+  img = cv.imread(path_to_img, C.COLOR_MODE == 'rgb')
+  img = cv.resize(img, (C.IMG_SIZE, C.IMG_SIZE))
+  img = img / 255
+  img = img[...,::-1] #bgr to rgb
+  return img
+
 def plotLatentSpace2D(model, tiling = 15, img_size = 720, max_dist_from_mean = 1, show_plot = True, channels = 3):
 
   # Calculate appropriate tile size
@@ -67,6 +75,49 @@ def getLatentSpaceGrid(model, z_samples, img_size = 720, channels = 3):
 
         figure[i * tile_size: (i + 1) * tile_size,
                 j * tile_size: (j + 1) * tile_size, :] = img
+
+  # Resize figure down to img_size (in case it is larger due to tile_size px rounding)
+  figure = cv.resize(figure, (img_size, img_size))
+  figure = figure * 255
+  figure = figure.astype('uint8')
+
+  return figure
+
+def getReconstructionGrid(model, samples, img_size = 720, channels = 3):
+  n_samples = samples.shape[0]
+  tiling = int(np.ceil(np.sqrt(n_samples*2))) #nr of tiles per row. *2 as we are adding the predicted ones every other row
+
+  # Calculate appropriate tile size
+  tile_size = math.ceil(img_size / tiling)
+
+  # Create an empty canvas of appropriate size (This may be slightly larger than img_size due to px rounding)
+  figure = np.zeros((tile_size * tiling, tile_size * tiling, channels))
+
+  samples_recon = model.predict(samples)
+
+  for i in [2*i for i in range(int(tiling/2))]: #0,2,4,
+    for j in range(tiling):
+      n = int((i/2) * tiling + j) #nr of samples processed
+
+      if n >= n_samples:
+        break
+      else:
+        x_recon = samples_recon[n]
+
+        # reshape and convert sample to rgb
+        img = x_recon.reshape(C.IMG_SIZE, C.IMG_SIZE, channels)
+        img = cv.resize(img, (tile_size, tile_size))
+        img = img[...,::-1] #bgr to rgb
+
+        # add reconstructed img to canvas
+        figure[i * tile_size: (i + 1) * tile_size,
+                j * tile_size: (j + 1) * tile_size, :] = img
+
+        # add original img to the row below
+        original_img = cv.resize(samples[n], (tile_size, tile_size))
+        original_img = original_img[...,::-1] #bgr to rgb
+        figure[(i+1) * tile_size: (i + 2) * tile_size,
+                j * tile_size: (j + 1) * tile_size, :] = original_img
 
   # Resize figure down to img_size (in case it is larger due to tile_size px rounding)
   figure = cv.resize(figure, (img_size, img_size))
