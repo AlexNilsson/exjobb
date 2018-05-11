@@ -31,4 +31,3 @@ number_of_plots = args.number_of_plots if args.number_of_plots != None else 2
 
 # Execute commands
 removeEmptySessions(args.directory, min_epoch_plots = number_of_plots)
-

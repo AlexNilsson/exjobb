@@ -1,6 +1,5 @@
-from keras.layers import Input, Dense, Lambda, Dropout, Conv2D, Conv2DTranspose, BatchNormalization, MaxPooling2D, UpSampling2D, Flatten, Reshape, LeakyReLU
+from keras.layers import Input, Dense, Lambda, Dropout, Conv2D, MaxPooling2D, UpSampling2D, Flatten, Reshape
 from keras.models import Model
-from keras.optimizers import Adam
 import keras.backend as K
 
 from . import config as C
@@ -14,37 +13,27 @@ class VAE:
     self.encoder = self.buildEncoder(self.inputs)
     self.decoder = self.buildDecoder()
     self.model = self.buildModel()
-    self.optimizer = Adam(lr=1e-04, beta_1=0.5, amsgrad=True)
 
   def buildEncoder(self, input_tensor):
     """ Builds the Encoder Model """
     # returns: ( mu(input_tensor), log_sigma(input_tensor) )
-    
     x = input_tensor
-    # (64, 64, 3)
 
-    x = Conv2D(64, 5, strides=2, padding='same')(x)
-    x = LeakyReLU(alpha=0.2)(x)
-    x = BatchNormalization(momentum=0.8)(x)
-    # (32, 32, 64)
+    x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
+    x = MaxPooling2D((2, 2), padding='same')(x)
+    x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
+    x = MaxPooling2D((2, 2), padding='same')(x)
+    x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
+    x = MaxPooling2D((2, 2), padding='same')(x)
+    convoluted = x
 
-    x = Conv2D(128, 5, strides=2, padding='same')(x)
-    x = LeakyReLU(alpha=0.2)(x)
-    x = BatchNormalization(momentum=0.8)(x)
-    # (16, 16, 128)
-
-    x = Conv2D(256, 5, strides=2, padding='same')(x)
-    x = LeakyReLU(alpha=0.2)(x)
-    x = BatchNormalization(momentum=0.8)(x)
-    # (8, 8, 256)
-
-    x = Conv2D(512, 5, strides=2, padding='same')(x)
-    x = LeakyReLU(alpha=0.2)(x)
-    x = BatchNormalization(momentum=0.8)(x)
-    # (4, 4, 512)
+    """ Variables used for decoders layers sizes """
+    self.convShape = convoluted.shape
 
     x = Flatten()(x)
-    x = Dropout(C.DROPUT_AMOUNT)(x)
+    x = Dropout(C.DROPUT_AMOUNT, input_shape=(300,))(x)
+    x = Dense(400, activation='sigmoid')(x)
+    x = Dense(400, activation='sigmoid')(x)
 
     mu = Dense(C.Z_LAYER_SIZE, activation='linear')(x)
     log_sigma = Dense(C.Z_LAYER_SIZE, activation='linear')(x)
@@ -57,33 +46,23 @@ class VAE:
     """ Builds the Decoder Model """
     z = Input(shape=(C.Z_LAYER_SIZE,))
     x = z
-    # (z)
 
-    x = Dense(1000, activation='tanh')(x)
-    x = Dropout(C.DROPUT_AMOUNT)(x)
-    # (1000)
+    _x = int(self.convShape[1])
+    _y = int(self.convShape[2])
+    _z = int(self.convShape[3])
 
-    x = Reshape((1, 1, 1000))(x)
-    # (1,1,1000)
-    
-    x = Conv2DTranspose(512, 4, strides=1, activation='relu')(x)
-    x = BatchNormalization(momentum=0.8)(x)
-    # (4, 4, 512)
-
-    x = Conv2DTranspose(512, 5, strides=2, activation='relu', padding='same')(x)
-    x = BatchNormalization(momentum=0.8)(x)
-    # (8, 8, 256)
-
-    x = Conv2DTranspose(512, 5, strides=2, activation='relu', padding='same')(x)
-    x = BatchNormalization(momentum=0.8)(x)
-    # (16, 16, 128)
-
-    x = Conv2DTranspose(512, 5, strides=2, activation='relu', padding='same')(x)
-    x = BatchNormalization(momentum=0.8)(x)
-    # (32, 32, 64)
-
-    x = Conv2DTranspose(3, 5, strides=2, activation='sigmoid', padding='same')(x)
-    # (64, 64, 3)
+    x = Dense(400, activation='sigmoid')(x)
+    x = Dense(400, activation='sigmoid')(x)
+    x = Dropout(C.DROPUT_AMOUNT, input_shape=(300,))(x)
+    x = Dense(_x*_y*_z, activation='relu')(x)
+    x = Reshape((_x,_y,_z))(x)
+    x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
+    x = UpSampling2D((2, 2))(x)
+    x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
+    x = UpSampling2D((2, 2))(x)
+    x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
+    x = UpSampling2D((2, 2))(x)
+    x = Conv2D(3, (3, 3), activation='sigmoid', padding='same')(x)
 
     decoder = Model(z, x, name='Decoder')
 

@@ -4,21 +4,22 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 
 from keras.callbacks import Callback
-from visualization import plotLatentSpace2D
-
-from model import config as C
+from core.Visualizer import Visualizer
 
 class PlotLatentSpaceProgress(Callback):
-  def __init__(self, model, tiling=15, img_size = 720, max_dist_from_mean = 1, show_plot = True, save_plot = True, path_to_save_directory = './epoch_plots', save_name = 'image'):
+  def __init__(self, model, config, tiling=15, img_size = 720, max_dist_from_mean = 1, show_plot = True, save_plot = True, path_to_save_directory = './epoch_plots', save_name = 'image'):
+    self.config = config
 
     channels = 3 if C.COLOR_MODE == 'rgb' else 1
 
-    self.plot = lambda : plotLatentSpace2D(model, tiling = tiling, img_size = img_size, max_dist_from_mean = max_dist_from_mean, show_plot = show_plot, channels = channels )
+    self.plot = lambda : Visualizer(config).plotLatentSpace2D(model, tiling = tiling, img_size = img_size, max_dist_from_mean = max_dist_from_mean, show_plot = show_plot, channels = channels )
     self.save_plot = save_plot
     self.path_to_save_directory = path_to_save_directory
     self.save_name = save_name
 
   def on_epoch_begin(self, epoch, logs):
+    C = self.config
+
     if epoch % C.PLOT_LATENT_SPACE_EVERY == 0:
       latentSpacePlot = self.plot()
 
@@ -33,8 +34,8 @@ class PlotLatentSpaceProgress(Callback):
     cv.destroyAllWindows()
 
 class PlotLosses(Callback):
-  def __init__(self, path_to_save_directory = './loss_plots'):
-
+  def __init__(self, config, path_to_save_directory = './loss_plots'):
+    self.config = config
     self.path_to_save_directory = path_to_save_directory
 
     self.d_loss = []
@@ -47,6 +48,7 @@ class PlotLosses(Callback):
     plt.show()
 
   def on_epoch_end(self, epoch, logs={}):
+    C = self.config
 
     self.d_loss.append(logs.get('d_loss'))
     self.g_loss.append(logs.get('g_loss'))

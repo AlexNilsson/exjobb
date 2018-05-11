@@ -1,4 +1,4 @@
-from keras.layers import Input, Dense, Lambda, Dropout, Conv2D, Conv2DTranspose, BatchNormalization, MaxPooling2D, UpSampling2D, Flatten, Reshape, LeakyReLU
+from keras.layers import Input, Dense, Lambda, Dropout, Conv2D, Conv2DTranspose, MaxPooling2D, UpSampling2D, Flatten, Reshape
 from keras.models import Model
 import keras.backend as K
 
@@ -19,20 +19,10 @@ class VAE:
     # returns: ( mu(input_tensor), log_sigma(input_tensor) )
     x = input_tensor
 
-    x = Conv2D(32, 3, activation="relu", padding='same')(x)
-    x = BatchNormalization(momentum=0.8)(x)
-
-    x = Conv2D(64, 5, strides=2, activation="relu", padding='same')(x)
-    x = BatchNormalization(momentum=0.8)(x)
-
-    x = Conv2D(128, 5, strides=2, activation="relu", padding='same')(x)
-    x = BatchNormalization(momentum=0.8)(x)
-
-    x = Conv2D(256, 5, strides=2, activation="relu", padding='same')(x)
-    x = BatchNormalization(momentum=0.8)(x)
-
-    x = Conv2D(512, 5, strides=2, activation="relu", padding='same')(x)
-    x = BatchNormalization(momentum=0.8)(x)
+    x = Conv2D(32, 5, strides=2, activation='relu', padding='same')(x)
+    x = Conv2D(64, 5, strides=2, activation='relu', padding='same')(x)
+    x = Conv2D(128, 5, strides=2, activation='relu', padding='same')(x)
+    x = Conv2D(256, 5, strides=2, activation='relu', padding='same')(x)
     convoluted = x
 
     # Variables used for decoders layers sizes
@@ -57,28 +47,14 @@ class VAE:
     c2 = int(self.convShape[2])
     c3 = int(self.convShape[3])
 
-    x = Dense(c1 * c2 * c3)(x)
-    x = LeakyReLU(alpha=0.1)(x)
+    x = Dense(c1 * c2 * c3, activation='relu')(x)
     x = Dropout(C.DROPUT_AMOUNT)(x)
     x = Reshape((c1, c2, c3))(x)
     
-    x = Conv2D(512, 3, activation='relu', padding='same')(x)
-    x = BatchNormalization(momentum=0.7)(x)
-
-    x = UpSampling2D()(x)
-    x = Conv2D(256, 3, activation='relu', padding='same')(x)
-    x = BatchNormalization(momentum=0.7)(x)
-
-    x = UpSampling2D()(x)
-    x = Conv2D(128, 3, activation='relu', padding='same')(x)
-    x = BatchNormalization(momentum=0.7)(x)
-
-    x = UpSampling2D()(x)
-    x = Conv2D(64, 3, activation='relu', padding='same')(x)
-    x = BatchNormalization(momentum=0.7)(x)
-
-    x = UpSampling2D()(x)
-    x = Conv2D(3, 3, activation='sigmoid', padding='same')(x)
+    x = Conv2DTranspose(128, 5, strides=2, activation='relu', padding='same')(x)
+    x = Conv2DTranspose(64, 5, strides=2, activation='relu', padding='same')(x)
+    x = Conv2DTranspose(32, 5, strides=2, activation='relu', padding='same')(x)
+    x = Conv2DTranspose(3, 5, strides=2, activation='sigmoid', padding='same')(x)
 
     decoder = Model(z, x, name='Decoder')
 

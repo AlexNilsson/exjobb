@@ -1,19 +1,11 @@
 import os, math
-import matplotlib.pyplot as plt
 from datetime import datetime
 from shutil import copytree
 
 import cv2 as cv
 import numpy as np
-from PIL import Image
 
-import tensorflow as tf
-from keras.layers import Input, Dense, Lambda, Dropout, Conv2D, MaxPooling2D, UpSampling2D, Flatten, Reshape
-from keras.models import Model
-from keras.objectives import binary_crossentropy
 from keras.callbacks import LearningRateScheduler, ModelCheckpoint
-from keras.preprocessing.image import ImageDataGenerator
-import keras.backend as K
 
 # Project Imports
 import model as M
@@ -21,8 +13,8 @@ from model import config as C
 from model import architecture
 
 from callbacks import PlotLatentSpaceProgress, PlotLosses, LogLosses
-from generators import getDataPairGenerator
-from processing import preProcessImages, flattenImagesIntoArray, addNoiseToArray
+from core.Generators import Generators
+from core.processing import preProcessImages, flattenImagesIntoArray, addNoiseToArray
 
 PATH_TO_THIS_DIR = os.path.dirname(__file__)
 
@@ -56,7 +48,7 @@ copytree(os.path.join(PATH_TO_THIS_DIR, M.REL_PATH_TO_MODEL_DIR), os.path.join(P
 
 """ DATA """
 # Path to dataset
-PATH_TO_DATA_DIR = os.path.join(PATH_TO_THIS_DIR, '../data')
+PATH_TO_DATA_DIR = os.path.join(PATH_TO_THIS_DIR, '../../data')
 PATH_TO_DATASET = os.path.join(PATH_TO_DATA_DIR, C.DATASET)
 
 # Number of samples in the dataset
@@ -66,8 +58,8 @@ if C.USE_GENERATORS:
   # Data Generators, used to load data in batches to save memory
   # these are on the format (x, y) with input and expected output
   # They also perform data augmentation on the fly: resize, greyscale, hue-shift, zoom etc.
-  data_pair_generator = getDataPairGenerator(PATH_TO_DATASET)
-  val_data_pair_generator = getDataPairGenerator(PATH_TO_DATASET)
+  data_pair_generator = Generators(config).getDataPairGenerator(PATH_TO_DATASET)
+  val_data_pair_generator = Generators(config).getDataPairGenerator(PATH_TO_DATASET)
 
 else:
   # Preparses the trainingset to a new folder on disc and
@@ -133,6 +125,7 @@ vae.compile(optimizer = VAE.optimizer, loss = VAE.loss_function)
 # Training Callback: Latent space progress
 latent_space_progress = PlotLatentSpaceProgress(
   model = decoder,
+  config = C,
   tiling = C.LATENT_SPACE_TILING,
   img_size = C.PLOT_SIZE,
   max_dist_from_mean = 2,
@@ -152,6 +145,7 @@ weights_checkpoint_callback = ModelCheckpoint(
 
 # Training Callback: Plot Losses
 plot_losses = PlotLosses(
+  config = C,
   path_to_save_directory = PATH_TO_LOSS_PLOTS
 )
 

@@ -4,14 +4,8 @@ from shutil import copytree
 
 import cv2 as cv
 import numpy as np
-from PIL import Image
 
-from keras.layers import Input, Dense, Lambda, Dropout, Conv2D, MaxPooling2D, UpSampling2D, Flatten, Reshape
-from keras.models import Model
 from keras.optimizers import Adam
-from keras.objectives import binary_crossentropy
-from keras.callbacks import LearningRateScheduler, ModelCheckpoint
-from keras.preprocessing.image import ImageDataGenerator
 
 # Project Imports
 import model as M
@@ -19,8 +13,8 @@ from model import config as C
 from model import architecture
 
 from callbacks import PlotLatentSpaceProgress, PlotLosses
-from generators import getDataGenerator
-from processing import preProcessImages, flattenImagesIntoArray, addNoiseToArray
+from core.Generators import Generators
+from core.processing import preProcessImages, flattenImagesIntoArray, addNoiseToArray
 
 PATH_TO_THIS_DIR = os.path.dirname(__file__)
 
@@ -49,7 +43,7 @@ copytree(os.path.join(PATH_TO_THIS_DIR, M.REL_PATH_TO_MODEL_DIR), os.path.join(P
 
 """ DATA """
 # Path to dataset
-PATH_TO_DATA_DIR = os.path.join(PATH_TO_THIS_DIR, '../data')
+PATH_TO_DATA_DIR = os.path.join(PATH_TO_THIS_DIR, '../../data')
 PATH_TO_DATASET = os.path.join(PATH_TO_DATA_DIR, C.DATASET)
 
 # Number of samples in the dataset
@@ -59,7 +53,7 @@ if C.USE_GENERATORS:
   # Data Generators, used to load data in batches to save memory
   # these are on the format (x, y) with input and expected output
   # They also perform data augmentation on the fly: resize, greyscale, hue-shift, zoom etc.
-  data_generator = getDataGenerator(PATH_TO_DATASET)
+  data_generator = Generators(C).getDataGenerator(PATH_TO_DATASET)
   #val_data_generator = getDataGenerator(PATH_TO_DATASET)
 
 else:
@@ -128,6 +122,7 @@ if C.PRINT_MODEL_SUMMARY:
 # Training Callback: Latent space progress
 latent_space_progress = PlotLatentSpaceProgress(
   model = GAN.generator,
+  config = C,
   tiling = C.LATENT_SPACE_TILING,
   img_size = C.PLOT_SIZE,
   max_dist_from_mean = 2,
@@ -139,6 +134,7 @@ latent_space_progress = PlotLatentSpaceProgress(
 
 # Training Callback: Plot Losses
 plot_losses = PlotLosses(
+  config = C,
   path_to_save_directory = PATH_TO_LOSS_PLOTS
 )
 
