@@ -98,7 +98,6 @@ def encode_images(images, encoder, std = 0):
 
   return z_samples
 
-
 """ GET RANDOM LATENT VECTORS """
 def get_random_latent_space_points(n_points, std=1):
   for i in range(N_IMAGES):
