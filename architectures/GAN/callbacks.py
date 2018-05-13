@@ -67,3 +67,6 @@ class PlotLosses(Callback):
 
     if epoch % C.PLOT_LOSS_EVERY == 0:
       plt.savefig( os.path.join(self.path_to_save_directory, 'loss_plot_{}.png'.format(epoch)))
+
+  def on_batch_end(self, batch, logs={}):
+    self.on_epoch_end(batch, logs)

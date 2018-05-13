@@ -97,14 +97,14 @@ def get_random_latent_interpolation(n_samples, std=1):
   return z_lerps
 
 """ GET INTERPOLATION BETWEEN 2 TRAINED DATA POINTS """
-def get_latent_lerp_of_train_data(encoder, data_samples, n_samples):
+def get_latent_interpolation_of_train_data(encoder, data_samples, n_samples, interpolation_function = vectorLerp):
   # data_samples should be a list of 2 images to lerp between
 
   z_1, z_2 = encode_images(data_samples, encoder)
 
   # Interpolation
   z_lerps = np.array(
-    getVectorInterpolations(z_1, z_2, n_samples, vectorLerp)
+    getVectorInterpolations(z_1, z_2, n_samples, interpolation_function)
   )
 
   return z_lerps
@@ -162,7 +162,7 @@ if True:
 
     """ GET INTERPOLATION BETWEEN TWO TRAINED DATA POINTS """
     #data_samples = data_generator.__getitem__(i) / 255
-    #z_vectors = get_latent_lerp_of_train_data(encoder, data_samples, N_SAMPLES_PER_IMG)
+    #z_vectors = get_latent_interpolation_of_train_data(encoder, data_samples, N_SAMPLES_PER_IMG)
 
     """ LERP: SQUARE WINDOW TO CIRCULAR WINDOW """
     if False:
@@ -172,10 +172,10 @@ if True:
       # Round wooden window, no mullions, white background
       img_2 = visualizer.getImageForModelInput( os.path.join(PATH_TO_DATASET_DATA, '1xlmtz85qp.jpg'))
 
-      z_vectors = get_latent_lerp_of_train_data(VAE.encoder, np.array([img_1, img_2]), N_SAMPLES_PER_IMG)
+      z_vectors = get_latent_interpolation_of_train_data(VAE.encoder, np.array([img_1, img_2]), N_SAMPLES_PER_IMG)
 
     """ LERP: SQUARE WINDOW TO CIRCULAR WINDOW """
-    if False:
+    if True:
       # Square wooden window, no mullions, white background
       img_1 = visualizer.getImageForModelInput( os.path.join(PATH_TO_DATASET_DATA, '1tqyx7sdcj.jpg'))
 
@@ -185,8 +185,8 @@ if True:
       # Round wooden window, no mullions, white background
       img_3 = visualizer.getImageForModelInput( os.path.join(PATH_TO_DATASET_DATA, '1xlmtz85qp.jpg'))
 
-      img1_to_img2 = get_latent_lerp_of_train_data(VAE.encoder, np.array([img_1, img_2]), N_SAMPLES_PER_IMG)
-      img2_to_img3 = get_latent_lerp_of_train_data(VAE.encoder, np.array([img_2, img_3]), N_SAMPLES_PER_IMG)
+      img1_to_img2 = get_latent_interpolation_of_train_data(VAE.encoder, np.array([img_1, img_2]), N_SAMPLES_PER_IMG, interpolation_function = vectorSlerp)
+      img2_to_img3 = get_latent_interpolation_of_train_data(VAE.encoder, np.array([img_2, img_3]), N_SAMPLES_PER_IMG, interpolation_function = vectorSlerp)
 
       z_vectors = np.append(img1_to_img2, img2_to_img3, axis=0)
 
@@ -215,10 +215,10 @@ if True:
       z_vectors = np.array([ z_1, z_2, z_3, z_mullion, z_round_mullion, z_4, z_square_colorful ])
 
     # Decode vectors and get image
-    #img = visualizer.getLatentSpaceGrid(decoder, z_vectors, img_size = img_size)
+    img = visualizer.getLatentSpaceGrid(VAE.decoder, z_vectors, img_size = img_size)
 
     """ RECONSTRUCTION OF REAL DATA """
-    img = get_reconstructed_train_data(VAE.combined, PATH_TO_DATASET, N_SAMPLES_PER_IMG, img_size=img_size)
+    #img = get_reconstructed_train_data(VAE.combined, PATH_TO_DATASET, N_SAMPLES_PER_IMG, img_size=img_size)
 
     # Save the image
     visualizer.saveImg(img, PATHS.PATH_TO_OUT_DIRECTORY, 'latent_space_exploration-{}.jpg'.format(i))
