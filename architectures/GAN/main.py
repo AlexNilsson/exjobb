@@ -24,18 +24,19 @@ t = datetime.now()
 # Create a new output directory for this training session with a unique name
 THIS_ID = "{}--{}-{}-{}--{}-{}-{}".format(M.NAME, t.year, t.month, t.day, t.hour, t.minute, t.second)
 PATH_TO_OUT_DIRECTORY = os.path.join(PATH_TO_THIS_DIR, 'out', THIS_ID)
+os.makedirs(PATH_TO_OUT_DIRECTORY, exist_ok = True)
 
 # sub folders
 PATH_TO_EPOCH_PLOTS = os.path.join(PATH_TO_OUT_DIRECTORY, 'epoch_plots')
-PATH_TO_LOSS_PLOTS = os.path.join(PATH_TO_OUT_DIRECTORY, 'loss_plots')
-PATH_TO_SAVED_WEIGHTS = os.path.join(PATH_TO_OUT_DIRECTORY, 'saved_weights')
-PATH_TO_SAVED_MODELS = os.path.join(PATH_TO_OUT_DIRECTORY, 'saved_models')
-
-# create folders if they do not already exist
-os.makedirs(PATH_TO_OUT_DIRECTORY, exist_ok = True)
 os.makedirs(PATH_TO_EPOCH_PLOTS, exist_ok = True)
+
+PATH_TO_LOSS_PLOTS = os.path.join(PATH_TO_OUT_DIRECTORY, 'loss_plots')
 os.makedirs(PATH_TO_LOSS_PLOTS, exist_ok = True)
+
+PATH_TO_SAVED_WEIGHTS = os.path.join(PATH_TO_OUT_DIRECTORY, 'saved_weights')
 os.makedirs(PATH_TO_SAVED_WEIGHTS, exist_ok = True)
+
+PATH_TO_SAVED_MODELS = os.path.join(PATH_TO_OUT_DIRECTORY, 'saved_models')
 os.makedirs(PATH_TO_SAVED_MODELS, exist_ok = True)
 
 # Backup current Architecture & Config file to this new working directory
@@ -49,37 +50,11 @@ PATH_TO_DATASET = os.path.join(PATH_TO_DATA_DIR, C.DATASET)
 # Number of samples in the dataset
 N_DATA = sum([len(files) for r, d, files in os.walk(PATH_TO_DATASET)])
 
-if C.USE_GENERATORS:
-  # Data Generators, used to load data in batches to save memory
-  # these are on the format (x, y) with input and expected output
-  # They also perform data augmentation on the fly: resize, greyscale, hue-shift, zoom etc.
-  data_generator = Generators(C).getDataGenerator(PATH_TO_DATASET)
-  #val_data_generator = getDataGenerator(PATH_TO_DATASET)
-
-else:
-  # Preparses the trainingset to a new folder on disc and
-  # loads everything into memory in one batch
-  PATH_TO_PROCESSED_DATASET = os.path.join(PATH_TO_DATASET, 'processed')
-  if not os.path.exists(PATH_TO_PROCESSED_DATASET): os.mkdir(PATH_TO_PROCESSED_DATASET)
-
-  # preprocess data to new directory
-  preProcessImages(PATH_TO_DATASET, PATH_TO_PROCESSED_DATASET,
-    convert_to_grayscale = C.COLOR_MODE == 'greyscale',
-    resize_to = (C.IMG_SIZE, C.IMG_SIZE)
-  )
-
-  # Flatten and load all data into an array
-  channels = 3 if C.COLOR_MODE == 'rgb' else 1
-  img_shape = (C.IMG_SIZE, C.IMG_SIZE, channels)
-  x_train = flattenImagesIntoArray(PATH_TO_PROCESSED_DATASET, img_shape)
-
-  x_train_ref = x_train
-
-  # Add noise?
-  if C.NOISE_FACTOR > 0:
-    x_train = addNoiseToArray(x_train, C.NOISE_FACTOR)
-
-  x_test, x_test_ref = x_train, x_train_ref
+# Data Generators, used to load data in batches to save memory
+# these are on the format (x, y) with input and expected output
+# They also perform data augmentation on the fly: resize, greyscale, hue-shift, zoom etc.
+data_generator = Generators(C).getDataGenerator(PATH_TO_DATASET)
+#val_data_generator = getDataGenerator(PATH_TO_DATASET)
 
 """ MODEL """
 # GAN Instance
@@ -87,9 +62,9 @@ GAN = architecture.GAN()
 
 # Load saved weights
 if C.LOAD_SAVED_WEIGHTS:
-  before_weight_load = gan.get_weights()
-  gan.load_weights(os.path.join(PATH_TO_SAVED_WEIGHTS, 'weight.hdf5'), by_name=False)
-  after_weight_load = gan.get_weights()
+  before_weight_load = GAN.combined.get_weights()
+  GAN.combined.load_weights(os.path.join(PATH_TO_SAVED_WEIGHTS, 'weight.hdf5'), by_name=False)
+  after_weight_load = GAN.combined.get_weights()
   print('before_weight_load')
   print(before_weight_load)
   print('after_weight_load')

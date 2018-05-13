@@ -1,5 +1,4 @@
 import os, math
-from datetime import datetime
 from shutil import copytree
 
 import cv2 as cv
@@ -8,43 +7,25 @@ import numpy as np
 from keras.callbacks import ModelCheckpoint, TerminateOnNaN, TensorBoard, ReduceLROnPlateau, CSVLogger
 
 # Project Imports
+from core.Generators import Generators
+from core.processing import preProcessImages, flattenImagesIntoArray, addNoiseToArray
+from core.ProjectStructure import TrainingSessionOutputDirectory
+
 import model as M
 from model import config as C
 from model import architecture
-
 from callbacks import PlotLatentSpaceProgress, PlotLosses
-from core.Generators import Generators
-from core.processing import preProcessImages, flattenImagesIntoArray, addNoiseToArray
 
 PATH_TO_THIS_DIR = os.path.dirname(__file__)
 
-t = datetime.now()
-
 """ OUTPUT DIRECTORIES """
-# Create a new output directory for this training session with a unique name
-THIS_ID = "{}--{}-{}-{}--{}-{}-{}".format(M.NAME, t.year, t.month, t.day, t.hour, t.minute, t.second)
-PATH_TO_OUT_DIRECTORY = os.path.join(PATH_TO_THIS_DIR, 'out', THIS_ID)
-PATH_TO_LOGS_DIRECTORY = os.path.join(PATH_TO_OUT_DIRECTORY, 'logs')
-
-# sub folders
-PATH_TO_EPOCH_PLOTS = os.path.join(PATH_TO_OUT_DIRECTORY, 'epoch_plots')
-PATH_TO_LOSS_PLOTS = os.path.join(PATH_TO_OUT_DIRECTORY, 'loss_plots')
-PATH_TO_LOAD_WEIGHTS = os.path.join(PATH_TO_THIS_DIR, C.LOAD_FROM_DIRECTORY, 'saved_weights')
-PATH_TO_SAVED_WEIGHTS = os.path.join(PATH_TO_OUT_DIRECTORY, 'saved_weights')
-PATH_TO_SAVED_MODELS = os.path.join(PATH_TO_OUT_DIRECTORY, 'saved_models')
-
-PATH_TO_LOAD_WEIGHTS = os.path.join(PATH_TO_THIS_DIR, C.LOAD_FROM_DIRECTORY, 'saved_weights')
-
-# create folders if they do not already exist
-os.makedirs(PATH_TO_OUT_DIRECTORY, exist_ok = True)
-os.makedirs(PATH_TO_LOGS_DIRECTORY, exist_ok = True)
-os.makedirs(PATH_TO_EPOCH_PLOTS, exist_ok = True)
-os.makedirs(PATH_TO_LOSS_PLOTS, exist_ok = True)
-os.makedirs(PATH_TO_SAVED_WEIGHTS, exist_ok = True)
-os.makedirs(PATH_TO_SAVED_MODELS, exist_ok = True)
+PATHS = TrainingSessionOutputDirectory(PATH_TO_THIS_DIR, M.NAME)
 
 # Backup current Architecture & Config file to this new working directory
-copytree(os.path.join(PATH_TO_THIS_DIR, M.REL_PATH_TO_MODEL_DIR), os.path.join(PATH_TO_OUT_DIRECTORY, M.NAME))
+copytree(os.path.join(PATH_TO_THIS_DIR, M.REL_PATH_TO_MODEL_DIR), os.path.join(PATHS.PATH_TO_OUT_DIRECTORY, M.NAME))
+
+""" DATA TO LOAD """
+PATH_TO_LOAD_WEIGHTS = os.path.join(PATH_TO_THIS_DIR, C.LOAD_FROM_DIRECTORY, 'saved_weights')
 
 """ DATA """
 # Path to dataset
@@ -64,54 +45,32 @@ val_data_pair_generator = Generators(C).getDataPairGenerator(PATH_TO_DATASET)
 # VAE Instance
 VAE = architecture.VAE()
 
-# Encoder Model
-encoder = VAE.encoder
-
-# Decoder Model
-decoder = VAE.decoder
-
-# VAE Model
-vae = VAE.model
-
 # Load saved weights
 if C.LOAD_SAVED_WEIGHTS:
-  before_weight_load = vae.get_weights()
-  vae.load_weights(os.path.join(PATH_TO_LOAD_WEIGHTS, 'weight.hdf5'), by_name=False)
-  after_weight_load = vae.get_weights()
-  print('before_weight_load')
-  print(before_weight_load)
-  print('after_weight_load')
-  print(after_weight_load)
+  VAE.load(PATH_TO_LOAD_WEIGHTS)
 
 # Print model summary
 if C.PRINT_MODEL_SUMMARY:
-  print('vae summary:')
-  vae.summary()
-  print('encoder summary:')
-  encoder.summary()
-  print('decoder summary:')
-  decoder.summary()
+  VAE.printSummary()
 
 """ TRAINING """
-# Optimizer
-vae.compile(optimizer = VAE.optimizer, loss = VAE.loss_function)
 
 # Training Callback: Latent space progress
 latent_space_progress = PlotLatentSpaceProgress(
-  model = decoder,
+  model = VAE.decoder,
   config = C,
   tiling = C.LATENT_SPACE_TILING,
   img_size = C.PLOT_SIZE,
   max_dist_from_mean = 2,
   show_plot = C.SHOW_LATENT_PLOT,
   save_plot = C.SAVE_LATENT_PLOT,
-  path_to_save_directory = PATH_TO_EPOCH_PLOTS,
+  path_to_save_directory = PATHS.PATH_TO_EPOCH_PLOTS,
   save_name = M.NAME
 )
 
 # Training Callback: Weights checkpoint
 weights_checkpoint_callback = ModelCheckpoint(
-  filepath = os.path.join(PATH_TO_SAVED_WEIGHTS, 'weight.hdf5'),
+  filepath = os.path.join(PATHS.PATH_TO_SAVED_WEIGHTS, 'weights.hdf5'),
   verbose = 1,
   save_best_only = True,
   save_weights_only = True
@@ -120,7 +79,7 @@ weights_checkpoint_callback = ModelCheckpoint(
 # Training Callback: Plot Losses
 plot_losses = PlotLosses(
   config = C,
-  path_to_save_directory = PATH_TO_LOSS_PLOTS
+  path_to_save_directory = PATHS.PATH_TO_LOSS_PLOTS
 )
 
 # Training Callback: Terminate if loss = NaN
@@ -128,7 +87,7 @@ terminate_on_nan = TerminateOnNaN()
 
 # Training Callback: Tensorboard logs
 tensorboard = TensorBoard(
-  log_dir = PATH_TO_LOGS_DIRECTORY,
+  log_dir = PATHS.PATH_TO_LOGS_DIRECTORY,
   histogram_freq = 0,
   batch_size = 32,
   write_graph=True,
@@ -149,12 +108,12 @@ reduce_lr_on_plateau = ReduceLROnPlateau(
 
 # Training Callback: log losses
 log_losses = CSVLogger(
-  filename = os.path.join(PATH_TO_LOGS_DIRECTORY, 'loss.log')
+  filename = os.path.join(PATHS.PATH_TO_LOGS_DIRECTORY, 'loss.log')
 )
 
 # Train Model
 # Fit using data from generators
-vae.fit_generator(
+VAE.combined.fit_generator(
   data_pair_generator,
   epochs = C.EPOCHS,
   steps_per_epoch = math.floor(N_DATA/C.BATCH_SIZE),
@@ -175,8 +134,4 @@ vae.fit_generator(
 
 # Save model on completion
 if C.SAVE_MODEL_WHEN_DONE:
-  vae.save(os.path.join(PATH_TO_SAVED_MODELS, 'vae_model.h5'))
-  vae.save_weights(os.path.join(PATH_TO_SAVED_MODELS,'vae_weights.h5'))
-  decoder.save_weights(os.path.join(PATH_TO_SAVED_MODELS,'decoder_weights.h5'))
-  encoder.save_weights(os.path.join(PATH_TO_SAVED_MODELS,'encoder_weights.h5'))
-  decoder.save(os.path.join(PATH_TO_SAVED_MODELS,'decoder_model.h5'))
+  VAE.save(PATHS.PATH_TO_SAVED_MODELS)

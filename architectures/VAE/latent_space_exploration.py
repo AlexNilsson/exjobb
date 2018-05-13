@@ -1,28 +1,27 @@
 import os
 import cv2 as cv
 import numpy as np
-from datetime import datetime
 
 from keras.preprocessing.image import ImageDataGenerator
 
 # Project Imports
+from core.Visualizer import Visualizer
+from core.ProjectStructure import InferenceSessionOutputDirectory
+from core.Math import vectorLerp, vectorSlerp
+
 import model as M
 from model import config as C
 from model import architecture
-from core.Visualizer import Visualizer
 
 visualizer = Visualizer(C)
 
 PATH_TO_THIS_DIR = os.path.dirname(__file__)
 
-t = datetime.now()
-
 """ OUTPUT DIRECTORIES """
 # Create a new output directory for this training session with a unique name
-THIS_ID = "lsexp_{}--{}-{}-{}--{}-{}-{}".format(M.NAME, t.year, t.month, t.day, t.hour, t.minute, t.second)
-PATH_TO_OUT_DIRECTORY = os.path.join(PATH_TO_THIS_DIR, 'out_exp', THIS_ID)
-os.makedirs(PATH_TO_OUT_DIRECTORY, exist_ok = True)
+PATHS = InferenceSessionOutputDirectory(PATH_TO_THIS_DIR, M.NAME)
 
+""" DATA TO LOAD """
 PATH_TO_LOAD_WEIGHTS = os.path.join(PATH_TO_THIS_DIR, C.LOAD_FROM_DIRECTORY, 'saved_weights')
 
 """ DATA """
@@ -34,54 +33,22 @@ PATH_TO_DATASET = os.path.join(PATH_TO_DATA_DIR, C.DATASET)
 # VAE Instance
 VAE = architecture.VAE()
 
-# Encoder Model
-encoder = VAE.encoder
-
-# Decoder Model
-decoder = VAE.decoder
-
-# VAE Model
-vae = VAE.model
-
 # Print model summary
 if C.PRINT_MODEL_SUMMARY:
-  print('vae summary:')
-  vae.summary()
-  print('encoder summary:')
-  encoder.summary()
-  print('decoder summary:')
-  decoder.summary()
-
+  VAE.printSummary()
 
 """ LOAD SAVED WEIGHTS """
-if True:
-  try:
-    before_weight_load = vae.get_weights()
-    vae.load_weights(os.path.join(PATH_TO_LOAD_WEIGHTS, 'weight.hdf5'), by_name=False)
-    after_weight_load = vae.get_weights()
+VAE.load(PATH_TO_LOAD_WEIGHTS)
 
-  except Exception as e:
-    print('Failed to load stored weights..')
-    print(str(e))
 
-  else:
-    if np.array_equal(before_weight_load, after_weight_load):
-      print('Loaded weights are identical?')
-    else:
-      print('Weights loaded successfully!')
-
-def vectorLerp(a, b, fraction):
-  """ Linear Iterpolate between vectors """
-  return a + fraction * (b - a)
-
-def getVectorLerps(a, b, steps):
-  """ Creates a list of steps linearly between two vectors """
-  lerps = []
+def getVectorInterpolations(a, b, steps, interpolation_function):
+  """ Creates a list of interpolation steps between two vectors """
+  interpols = []
   for i in range(steps):
-    lerps.append(
-      vectorLerp(a, b, (i + 1) / steps )
+    interpols.append(
+      interpolation_function(a, b, (i + 1) / steps )
     )
-  return lerps
+  return interpols
 
 
 """ Returns the latent vectors for the provided images """
@@ -124,7 +91,7 @@ def get_random_latent_interpolation(n_samples, std=1):
 
   # Interpolation
   z_lerps = np.array(
-    getVectorLerps(z_1, z_2, n_samples)
+    getVectorInterpolations(z_1, z_2, n_samples, vectorLerp)
   )
 
   return z_lerps
@@ -137,7 +104,7 @@ def get_latent_lerp_of_train_data(encoder, data_samples, n_samples):
 
   # Interpolation
   z_lerps = np.array(
-    getVectorLerps(z_1, z_2, n_samples)
+    getVectorInterpolations(z_1, z_2, n_samples, vectorLerp)
   )
 
   return z_lerps
@@ -205,7 +172,7 @@ if True:
       # Round wooden window, no mullions, white background
       img_2 = visualizer.getImageForModelInput( os.path.join(PATH_TO_DATASET_DATA, '1xlmtz85qp.jpg'))
 
-      z_vectors = get_latent_lerp_of_train_data(encoder, np.array([img_1, img_2]), N_SAMPLES_PER_IMG)
+      z_vectors = get_latent_lerp_of_train_data(VAE.encoder, np.array([img_1, img_2]), N_SAMPLES_PER_IMG)
 
     """ LERP: SQUARE WINDOW TO CIRCULAR WINDOW """
     if False:
@@ -218,8 +185,8 @@ if True:
       # Round wooden window, no mullions, white background
       img_3 = visualizer.getImageForModelInput( os.path.join(PATH_TO_DATASET_DATA, '1xlmtz85qp.jpg'))
 
-      img1_to_img2 = get_latent_lerp_of_train_data(encoder, np.array([img_1, img_2]), N_SAMPLES_PER_IMG)
-      img2_to_img3 = get_latent_lerp_of_train_data(encoder, np.array([img_2, img_3]), N_SAMPLES_PER_IMG)
+      img1_to_img2 = get_latent_lerp_of_train_data(VAE.encoder, np.array([img_1, img_2]), N_SAMPLES_PER_IMG)
+      img2_to_img3 = get_latent_lerp_of_train_data(VAE.encoder, np.array([img_2, img_3]), N_SAMPLES_PER_IMG)
 
       z_vectors = np.append(img1_to_img2, img2_to_img3, axis=0)
 
@@ -237,7 +204,7 @@ if True:
       # Round window, colorful glass, mullions, white background
       img_4 = visualizer.getImageForModelInput( os.path.join(PATH_TO_DATASET_DATA, 'cm6siputnb.jpg'))
 
-      z_1, z_2, z_3, z_4 = encode_images(np.array([img_1, img_2, img_3, img_4]), encoder)
+      z_1, z_2, z_3, z_4 = encode_images(np.array([img_1, img_2, img_3, img_4]), VAE.encoder)
 
       z_mullion = z_2 - z_1
 
@@ -251,7 +218,7 @@ if True:
     #img = visualizer.getLatentSpaceGrid(decoder, z_vectors, img_size = img_size)
 
     """ RECONSTRUCTION OF REAL DATA """
-    img = get_reconstructed_train_data(vae, PATH_TO_DATASET, N_SAMPLES_PER_IMG, img_size=img_size)
+    img = get_reconstructed_train_data(VAE.combined, PATH_TO_DATASET, N_SAMPLES_PER_IMG, img_size=img_size)
 
     # Save the image
-    visualizer.saveImg(img, PATH_TO_OUT_DIRECTORY, 'latent_space_exploration-{}.jpg'.format(i))
+    visualizer.saveImg(img, PATHS.PATH_TO_OUT_DIRECTORY, 'latent_space_exploration-{}.jpg'.format(i))
