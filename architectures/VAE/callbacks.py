@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 from keras.callbacks import Callback
 from core.Visualizer import Visualizer
+from model import config as C
 
 class PlotLatentSpaceProgress(Callback):
   def __init__(self, model, config, tiling=15, img_size = 720, max_dist_from_mean = 1, show_plot = True, save_plot = True, path_to_save_directory = './epoch_plots', save_name = 'image'):
@@ -64,11 +65,3 @@ class PlotLosses(Callback):
     C = self.config
     if epoch % C.SAVE_LOSS_PLOT_FREQ == 0:
       plt.savefig( os.path.join(self.path_to_save_directory, 'loss_plot_{}.png'.format(epoch)))
-
-class LogLosses(Callback):
-  def __init__(self, log_file = './logs/loss.log'):
-    self.logfile = log_file
-
-  def on_epoch_end(self, epoch, logs={}):
-    with open(self.logfile, "a+") as f:
-      f.write("{}, {}\n".format(epoch, logs.get('loss'))) # Todo comma separated string of multiple values if applicable

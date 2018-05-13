@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 from keras.callbacks import Callback
 from core.Visualizer import Visualizer
+from model import config as C
 
 class PlotLatentSpaceProgress(Callback):
   def __init__(self, model, config, tiling=15, img_size = 720, max_dist_from_mean = 1, show_plot = True, save_plot = True, path_to_save_directory = './epoch_plots', save_name = 'image'):

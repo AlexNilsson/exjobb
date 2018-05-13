@@ -2,7 +2,7 @@ import importlib
 
 """ Setup """
 # name of model to load: ./models/<name>
-NAME = 'VAE_Radford'
+NAME = 'VAE_Radford2'
 
 """ Load Model Config & Architecture """
 REL_PATH_TO_MODELS_DIR = 'models'

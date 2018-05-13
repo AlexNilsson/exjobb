@@ -1,5 +1,5 @@
 """ Load / Save Model"""
-LOAD_SAVED_WEIGHTS = True
+LOAD_SAVED_WEIGHTS = False
 LOAD_FROM_DIRECTORY = 'out/VAE_Radford--2018-5-4--17-37-2'
 SAVE_MODEL_WHEN_DONE = False
 
@@ -7,11 +7,9 @@ SAVE_MODEL_WHEN_DONE = False
 DATASET = 'windows'
 IMG_SIZE = 64 # 320 # must be dividable by 8
 COLOR_MODE = 'rgb' # 'grayscale' or 'rgb'
-USE_GENERATORS = True
 
 """ Data Augmentation """
 SHUFFLE = True
-# Only applicable if USE_GENERATORS = True
 ZOOM_RANGE = 0.2
 CHANNEL_SHIFT_RANGE = 0.2
 HORIZONTAL_FLIP = True

@@ -5,14 +5,14 @@ from shutil import copytree
 import cv2 as cv
 import numpy as np
 
-from keras.callbacks import LearningRateScheduler, ModelCheckpoint
+from keras.callbacks import ModelCheckpoint, TerminateOnNaN, TensorBoard, ReduceLROnPlateau, CSVLogger
 
 # Project Imports
 import model as M
 from model import config as C
 from model import architecture
 
-from callbacks import PlotLatentSpaceProgress, PlotLosses, LogLosses
+from callbacks import PlotLatentSpaceProgress, PlotLosses
 from core.Generators import Generators
 from core.processing import preProcessImages, flattenImagesIntoArray, addNoiseToArray
 
@@ -54,37 +54,11 @@ PATH_TO_DATASET = os.path.join(PATH_TO_DATA_DIR, C.DATASET)
 # Number of samples in the dataset
 N_DATA = sum([len(files) for r, d, files in os.walk(PATH_TO_DATASET)])
 
-if C.USE_GENERATORS:
-  # Data Generators, used to load data in batches to save memory
-  # these are on the format (x, y) with input and expected output
-  # They also perform data augmentation on the fly: resize, greyscale, hue-shift, zoom etc.
-  data_pair_generator = Generators(config).getDataPairGenerator(PATH_TO_DATASET)
-  val_data_pair_generator = Generators(config).getDataPairGenerator(PATH_TO_DATASET)
-
-else:
-  # Preparses the trainingset to a new folder on disc and
-  # loads everything into memory in one batch
-  PATH_TO_PROCESSED_DATASET = os.path.join(PATH_TO_DATASET, 'processed')
-  if not os.path.exists(PATH_TO_PROCESSED_DATASET): os.mkdir(PATH_TO_PROCESSED_DATASET)
-
-  # preprocess data to new directory
-  preProcessImages(PATH_TO_DATASET, PATH_TO_PROCESSED_DATASET,
-    convert_to_grayscale = C.COLOR_MODE == 'greyscale',
-    resize_to = (C.IMG_SIZE, C.IMG_SIZE)
-  )
-
-  # Flatten and load all data into an array
-  channels = 3 if C.COLOR_MODE == 'rgb' else 1
-  img_shape = (C.IMG_SIZE, C.IMG_SIZE, channels)
-  x_train = flattenImagesIntoArray(PATH_TO_PROCESSED_DATASET, img_shape)
-
-  x_train_ref = x_train
-
-  # Add noise?
-  if C.NOISE_FACTOR > 0:
-    x_train = addNoiseToArray(x_train, C.NOISE_FACTOR)
-
-  x_test, x_test_ref = x_train, x_train_ref
+# Data Generators, used to load data in batches to save memory
+# these are on the format (x, y) with input and expected output
+# They also perform data augmentation on the fly: resize, greyscale, hue-shift, zoom etc.
+data_pair_generator = Generators(C).getDataPairGenerator(PATH_TO_DATASET)
+val_data_pair_generator = Generators(C).getDataPairGenerator(PATH_TO_DATASET)
 
 """ MODEL """
 # VAE Instance
@@ -149,38 +123,55 @@ plot_losses = PlotLosses(
   path_to_save_directory = PATH_TO_LOSS_PLOTS
 )
 
-# Training Callback: Log Losses
-log_losses = LogLosses(
-  log_file = os.path.join(PATH_TO_LOGS_DIRECTORY, 'loss.log')
+# Training Callback: Terminate if loss = NaN
+terminate_on_nan = TerminateOnNaN()
+
+# Training Callback: Tensorboard logs
+tensorboard = TensorBoard(
+  log_dir = PATH_TO_LOGS_DIRECTORY,
+  histogram_freq = 0,
+  batch_size = 32,
+  write_graph=True,
+  write_grads=False,
+  write_images=False,
+  embeddings_freq=0,
+  embeddings_layer_names=None,
+  embeddings_metadata=None
+)
+
+# Training Callback: Reduce learning rate upon reaching a plateau
+reduce_lr_on_plateau = ReduceLROnPlateau(
+  monitor='val_loss',
+  factor=0.1,
+  patience=100,
+  verbose=1,
+)
+
+# Training Callback: log losses
+log_losses = CSVLogger(
+  filename = os.path.join(PATH_TO_LOGS_DIRECTORY, 'loss.log')
 )
 
 # Train Model
-if C.USE_GENERATORS:
-  # Fit using data from generators
-  vae.fit_generator(
-    data_pair_generator,
-    epochs = C.EPOCHS,
-    steps_per_epoch = math.floor(N_DATA/C.BATCH_SIZE),
-    validation_data = val_data_pair_generator,
-    validation_steps = math.ceil((N_DATA/C.BATCH_SIZE)/10),
-    shuffle = C.SHUFFLE,
-    callbacks = [latent_space_progress, weights_checkpoint_callback, log_losses],
-    use_multiprocessing = False,
-    verbose = C.TRAIN_VERBOSITY,
-    initial_epoch = C.INIT_EPOCH if C.LOAD_SAVED_WEIGHTS else 0
-  )
-else:
-  # Fit using data already in memory
-  vae.fit(
-    x_train, x_train_ref,
-    shuffle = C.SHUFFLE,
-    epochs = C.EPOCHS,
-    batch_size = C.BATCH_SIZE,
-    validation_data = (x_test, x_test_ref),
-    callbacks = [latent_space_progress, weights_checkpoint_callback, plot_losses],
-    verbose = C.TRAIN_VERBOSITY,
-    initial_epoch = C.INIT_EPOCH if C.LOAD_SAVED_WEIGHTS else 0
-  )
+# Fit using data from generators
+vae.fit_generator(
+  data_pair_generator,
+  epochs = C.EPOCHS,
+  steps_per_epoch = math.floor(N_DATA/C.BATCH_SIZE),
+  validation_data = val_data_pair_generator,
+  validation_steps = math.ceil((N_DATA/C.BATCH_SIZE)/10),
+  shuffle = C.SHUFFLE,
+  callbacks = [
+    terminate_on_nan,
+    reduce_lr_on_plateau,
+    latent_space_progress,
+    weights_checkpoint_callback,
+    log_losses
+    ],
+  use_multiprocessing = False,
+  verbose = C.TRAIN_VERBOSITY,
+  initial_epoch = C.INIT_EPOCH if C.LOAD_SAVED_WEIGHTS else 0
+)
 
 # Save model on completion
 if C.SAVE_MODEL_WHEN_DONE:
