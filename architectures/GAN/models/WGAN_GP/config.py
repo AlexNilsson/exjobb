@@ -30,7 +30,7 @@ SAVE_MODEL_ON_COMPLETION = False
 PRINT_MODEL_SUMMARY = True
 TRAIN_VERBOSITY = 1 # Verbosity mode. 0 = silent, 1 = progress bar, 2 = one line per epoch.
 
-PLOT_LATENT_SPACE_EVERY = 1 #How often to plot the latent space, 1= every epoch, 10 every 10th etc.
+PLOT_LATENT_SPACE_EVERY = 10 #How often to plot the latent space, 1= every epoch, 10 every 10th etc.
 PLOT_LOSS_EVERY = 50 #How often to plot the loss plot, 1= every epoch, 10 every 10th etc.
 PLOT_SIZE = 720 #px
 LATENT_SPACE_TILING = 15

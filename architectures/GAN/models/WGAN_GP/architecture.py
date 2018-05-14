@@ -74,25 +74,25 @@ class GAN:
     x = Reshape((1, 1, 100))(x)
     # (1, 1, 100)
 
-    x = Conv2DTranspose(512, 4, strides=2)(x)
+    x = Conv2DTranspose(64, 4, strides=2)(x)
     x = BatchNormalization(momentum=0.8)(x)
     x = Activation('relu')(x)
     # (4, 4, 512)
 
     #? Block 1
-    x = Conv2DTranspose(512, 5, strides=2, padding='same')(x)
+    x = Conv2DTranspose(64, 5, strides=2, padding='same')(x)
     x = BatchNormalization(momentum=0.8)(x)
     x = Activation('relu')(x)
     # (8, 8, 512)
 
     #? Block 2
-    x = Conv2DTranspose(256, 5, strides=2, padding='same')(x)
+    x = Conv2DTranspose(64, 5, strides=2, padding='same')(x)
     x = BatchNormalization(momentum=0.8)(x)
     x = Activation('relu')(x)
     # (16, 16, 256)
 
     #? Block 3
-    x = Conv2DTranspose(128, 5, strides=2, padding='same')(x)
+    x = Conv2DTranspose(64, 5, strides=2, padding='same')(x)
     x = BatchNormalization(momentum=0.8)(x)
     x = Activation('relu')(x)
     # (32, 32, 128)
@@ -125,22 +125,22 @@ class GAN:
     x = Dropout(self.dropout)(x)
     # (64, 64, 64)
 
-    x = Conv2D(128, 5, strides=2, kernel_initializer='he_normal', padding='same')(x)
+    x = Conv2D(64, 5, strides=2, kernel_initializer='he_normal', padding='same')(x)
     x = LeakyReLU()(x)
     x = Dropout(self.dropout)(x)
     # (32, 32, 128)
 
-    x = Conv2D(256, 5, strides=2, kernel_initializer='he_normal', padding='same')(x)
+    x = Conv2D(64, 5, strides=2, kernel_initializer='he_normal', padding='same')(x)
     x = LeakyReLU()(x)
     x = Dropout(self.dropout)(x)
     # (16, 16, 256)
 
-    x = Conv2D(256, 5, strides=2, kernel_initializer='he_normal', padding='same')(x)
+    x = Conv2D(64, 5, strides=2, kernel_initializer='he_normal', padding='same')(x)
     x = LeakyReLU()(x)
     x = Dropout(self.dropout)(x)
     # (8, 8, 256)
 
-    x = Conv2D(256, 5, strides=2, kernel_initializer='he_normal', padding='same')(x)
+    x = Conv2D(64, 5, strides=2, kernel_initializer='he_normal', padding='same')(x)
     x = LeakyReLU()(x)
     x = Dropout(self.dropout)(x)
     # (4, 4, 256)
@@ -251,6 +251,9 @@ class GAN:
     target_fake_score =  np.ones((C.BATCH_SIZE, 1))
     dummy_score = np.zeros((C.BATCH_SIZE, 1)) # For gradient penalty
 
+    # Initial loss
+    c_loss = g_loss = math.inf
+
     for epoch in range(C.EPOCHS):
 
       for callback in epoch_callbacks:
@@ -260,13 +263,16 @@ class GAN:
         """ Train Critic """
         # Real samples
         real_samples = next(data_generator)
+        if real_samples.shape[0] < C.BATCH_SIZE:
+          # Happens if n_samples % batch_size != 0, every n_samples/batch_size batch or so
+          real_samples = next(data_generator)
         # Sample generator input
         noise = np.random.normal(0, 1, (C.BATCH_SIZE, C.Z_LAYER_SIZE))
         # Train the critic
         c_loss = self.critic_model.train_on_batch([real_samples, noise],[target_real_score, target_fake_score, dummy_score])
 
         # Print Progress
-        print("Epoch:{} Batch:{}/{} [C loss: {}] [G loss: {}]".format(epoch, batch, self.n_critic, c_loss, g_loss))
+        print("Epoch:{} Batch:{}/{} [C loss: {}] [G loss: {}]".format(epoch, batch+1, self.n_critic, c_loss, g_loss))
 
       """ Train Generator """
       # Sample generator input
@@ -276,7 +282,7 @@ class GAN:
 
       # Epoch on_end Callbacks
       for callback in epoch_callbacks:
-        logs = {'c_loss': c_loss, 'g_loss': g_loss }
+        logs = {'d_loss': c_loss[0], 'g_loss': g_loss }
         callback.on_epoch_end(epoch, logs)
 
       # If at save interval => save generated image samples #TODO add as a callback?
