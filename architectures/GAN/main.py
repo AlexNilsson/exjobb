@@ -1,10 +1,14 @@
 import os, math
 from shutil import copytree
 
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__),'..','..'))
+
 import cv2 as cv
 import numpy as np
 
 # Project Imports
+import core
 import model as M
 from model import config as C
 from model import architecture
