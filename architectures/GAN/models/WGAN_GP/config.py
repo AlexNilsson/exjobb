@@ -1,19 +1,16 @@
 """ Load / Save Model"""
 LOAD_SAVED_WEIGHTS = False
 LOAD_FROM_DIRECTORY = 'out/2018-04-20--13-10--model'
-SAVE_MODEL_WHEN_DONE = False
 
 """ Data """
-DATASET = 'pokemons'
+DATASET = 'windows'
 IMG_SIZE = 64 # 320 # must be dividable by 8
 COLOR_MODE = 'rgb' # 'grayscale' or 'rgb'
-USE_GENERATORS = True
 
 """ Data Augmentation """
 SHUFFLE = True
-# Only applicable if USE_GENERATORS = True
-ZOOM_RANGE = 0.2
-CHANNEL_SHIFT_RANGE = 0.2
+ZOOM_RANGE = 0
+CHANNEL_SHIFT_RANGE = 0
 HORIZONTAL_FLIP = True
 
 """ Architecture """
@@ -24,8 +21,10 @@ NOISE_FACTOR = 0
 """ Training """
 BATCH_SIZE = 59 # the trainingset must be dividable with batches_size
 EPOCHS = 1000000
-KL_FACTOR = 0.5 # 1 = only KL, 0 = only Reconstruction Loss
+N_TRAIN_CRITIC = 5
+GRADIENT_PENALTY_WEIGHT = 10
 SAVE_WEIGHTS_FREQ = 5 # How often to save weights (n epochs)
+SAVE_MODEL_ON_COMPLETION = False
 
 """ Debug """
 PRINT_MODEL_SUMMARY = True

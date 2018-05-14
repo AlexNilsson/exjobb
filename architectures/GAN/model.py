@@ -1,8 +1,8 @@
 import importlib
-
+#TODO: Combine into main.py
 """ Setup """
 # name of model to load: ./models/<name>
-NAME = 'DCGAN_Radford'
+NAME = 'WGAN_GP'
 
 """ Load Model Config & Architecture """
 REL_PATH_TO_MODELS_DIR = 'models'

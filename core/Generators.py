@@ -8,8 +8,8 @@ class Generators:
   def getDataGenerator(self, path_to_dataset):
     C = self.config
     data_augmentor = ImageDataGenerator(
-      #zoom_range = C.ZOOM_RANGE,
-      #channel_shift_range = C.CHANNEL_SHIFT_RANGE,
+      zoom_range = C.ZOOM_RANGE,
+      channel_shift_range = C.CHANNEL_SHIFT_RANGE,
       horizontal_flip = C.HORIZONTAL_FLIP,
       #data_format = 'channels_last'
     )

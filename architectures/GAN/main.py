@@ -1,5 +1,4 @@
 import os, math
-from datetime import datetime
 from shutil import copytree
 
 import cv2 as cv
@@ -16,8 +15,6 @@ from core.processing import preProcessImages, flattenImagesIntoArray, addNoiseTo
 from core.ProjectStructure import TrainingSessionOutputDirectory
 
 PATH_TO_THIS_DIR = os.path.dirname(__file__)
-
-t = datetime.now()
 
 """ OUTPUT DIRECTORIES """
 # Create a new output directory for this training session with a unique name
@@ -75,8 +72,8 @@ plot_losses = PlotLosses(
   path_to_save_directory = PATHS.PATH_TO_LOSS_PLOTS
 )
 
-GAN.train(PATHS, N_DATA, data_generator, epoch_callbacks=[latent_space_progress, plot_losses], batch_callbacks=[plot_losses])
+GAN.train(PATHS, data_generator, epoch_callbacks=[latent_space_progress, plot_losses], batch_callbacks=[plot_losses])
 
 # Save model on completion
-if C.SAVE_MODEL_WHEN_DONE:
+if C.SAVE_MODEL_ON_COMPLETION:
   GAN.save(PATHS.PATH_TO_SAVED_MODELS)
