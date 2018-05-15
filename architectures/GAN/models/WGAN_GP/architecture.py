@@ -149,7 +149,7 @@ class GAN:
     x = Dropout(self.dropout)(x)
     # (1, 1, 4096)
 
-    x = Dense(1024, kernel_initializer='he_normal')(x)
+    x = Dense(64, kernel_initializer='he_normal')(x)
     x = LeakyReLU()(x)
     x = Dropout(self.dropout)(x)
     # (1, 1, 256)
@@ -264,8 +264,12 @@ class GAN:
         # Real samples
         real_samples = next(data_generator)
         if real_samples.shape[0] < C.BATCH_SIZE:
-          # Happens if n_samples % batch_size != 0, every n_samples/batch_size batch or so
+          # sample another batch if the final batch is too small
           real_samples = next(data_generator)
+
+        # rescale values from [0, 255] to domain [-1, 1]
+        real_samples = 2 * real_samples / 255 - 1
+
         # Sample generator input
         noise = np.random.normal(0, 1, (C.BATCH_SIZE, C.Z_LAYER_SIZE))
         # Train the critic

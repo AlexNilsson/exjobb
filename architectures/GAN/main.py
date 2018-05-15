@@ -7,6 +7,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__),'..','..'))
 import cv2 as cv
 import numpy as np
 
+from keras.callbacks import CSVLogger
+
 # Project Imports
 import core
 import model as M
@@ -76,7 +78,12 @@ plot_losses = PlotLosses(
   path_to_save_directory = PATHS.PATH_TO_LOSS_PLOTS
 )
 
-GAN.train(PATHS, data_generator, epoch_callbacks=[latent_space_progress, plot_losses], batch_callbacks=[plot_losses])
+# Training Callback: log losses
+log_losses = CSVLogger(
+  filename = os.path.join(PATHS.PATH_TO_LOGS_DIRECTORY, 'loss.log')
+)
+
+GAN.train(PATHS, data_generator, epoch_callbacks=[latent_space_progress, plot_losses, log_losses], batch_callbacks=[plot_losses])
 
 # Save model on completion
 if C.SAVE_MODEL_ON_COMPLETION:

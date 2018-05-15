@@ -7,6 +7,39 @@ class Visualizer:
   def __init__(self, config):
     self.config = config
 
+  def _px_to_display(self, images):
+    """ Rescales imagedata from specified domain to [0, 255] uint """
+    return self._rescale(images, toModel=False)
+
+  def _px_to_model(self, images):
+    """ Rescales imagedata from [0, 255] to specified domain """
+    return self._rescale(images, toModel=True)
+
+  def _rescale(self, images, toModel=False):
+    """ Rescales imagedata from specified domain to [0, 255] uint """
+    domain = self.config.GENERATED_IMAGE_RANGE
+    
+    if domain == (-1, 1):
+      if toModel:
+        images = 2 * images / 255 - 1
+      else:
+        images = (images + 1) * 255 / 2
+        images = images.astype('uint8')
+
+    elif domain == (0, 1):
+      if toModel:
+        images = images / 255
+      else:
+        images = images * 255
+        images = images.astype('uint8')
+
+    else:
+      print('Unknown GENERATED_IMAGE_RANGE: {} in config.py'.format(domain))
+      print('Please set this to either (-1, 1) or (0, 1) depending on activation function')
+    
+    return images
+
+
   def plotLatentSpace2D(self, model, tiling = 15, img_size = 720, max_dist_from_mean = 1, show_plot = True, channels = 3):
     C = self.config
 
@@ -73,8 +106,9 @@ class Visualizer:
 
     # Resize figure down to img_size (in case it is larger due to tile_size px rounding)
     figure = cv.resize(figure, (img_size, img_size))
-    figure = figure * 255
-    figure = figure.astype('uint8')
+    print('\n\n THE FIGURE:: \n')
+    print(figure)
+    figure = self._px_to_display(figure)
 
     return figure
 
@@ -118,8 +152,7 @@ class Visualizer:
 
     # Resize figure down to img_size (in case it is larger due to tile_size px rounding)
     figure = cv.resize(figure, (img_size, img_size))
-    figure = figure * 255
-    figure = figure.astype('uint8')
+    figure = self._px_to_model(figure)
 
     return figure
 
@@ -129,7 +162,7 @@ class Visualizer:
     C = self.config
     img = cv.imread(path_to_img, C.COLOR_MODE == 'rgb')
     img = cv.resize(img, (C.IMG_SIZE, C.IMG_SIZE))
-    img = img / 255
+    img = self._px_to_model(img)
     img = img[...,::-1] #bgr to rgb
     return img
 

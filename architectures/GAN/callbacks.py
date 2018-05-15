@@ -1,5 +1,6 @@
 import os, math
 import cv2 as cv
+import numpy as np
 
 import matplotlib.pyplot as plt
 
@@ -10,26 +11,32 @@ from model import config as C
 class PlotLatentSpaceProgress(Callback):
   def __init__(self, model, config, tiling=15, img_size = 720, max_dist_from_mean = 1, show_plot = True, save_plot = True, path_to_save_directory = './epoch_plots', save_name = 'image'):
     self.config = config
-
-    channels = 3 if C.COLOR_MODE == 'rgb' else 1
-
-    self.plot = lambda : Visualizer(config).plotLatentSpace2D(model, tiling = tiling, img_size = img_size, max_dist_from_mean = max_dist_from_mean, show_plot = show_plot, channels = channels )
+    self.tiling = tiling
+    self.img_size = img_size
+    self.max_dist_from_mean = max_dist_from_mean
+    self.show_plot = show_plot
     self.save_plot = save_plot
     self.path_to_save_directory = path_to_save_directory
     self.save_name = save_name
+
+    channels = 3 if C.COLOR_MODE == 'rgb' else 1
+    # Plot function, f(z_samples)
+    self.plot = lambda z_samples : Visualizer(config).getLatentSpaceGrid(model, z_samples, img_size = self.img_size, channels = channels)
 
   def on_epoch_begin(self, epoch, logs):
     C = self.config
 
     if epoch % C.PLOT_LATENT_SPACE_EVERY == 0:
-      latentSpacePlot = self.plot()
+      z_samples = np.random.normal(0, self.max_dist_from_mean, (self.tiling**2, C.Z_LAYER_SIZE))
+      print('\n\nZZZZZZZZZ: \n')
+      print(z_samples)
+      print('\n\ Result: \n')
+      figure = self.plot(z_samples)
+      print(figure)
 
       if self.save_plot:
-        # reshape to get the right range when saving image to file
-        figure_to_file = (latentSpacePlot + 1) * 0.5 * 255
-        figure_to_file = figure_to_file.astype('uint8')
         file_path = os.path.join(self.path_to_save_directory, '{}-{}.jpg'.format(epoch, self.save_name))
-        cv.imwrite(file_path, figure_to_file)
+        cv.imwrite(file_path, figure)
 
   def on_epoch_end(self, epoch, logs):
     cv.destroyAllWindows()
