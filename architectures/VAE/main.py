@@ -3,6 +3,7 @@ from shutil import copytree
 
 import cv2 as cv
 import numpy as np
+import pandas as pd
 
 from keras.callbacks import ModelCheckpoint, TerminateOnNaN, TensorBoard, ReduceLROnPlateau, CSVLogger
 
@@ -33,13 +34,13 @@ PATH_TO_DATA_DIR = os.path.join(PATH_TO_THIS_DIR, '../../data')
 PATH_TO_DATASET = os.path.join(PATH_TO_DATA_DIR, C.DATASET)
 
 # Number of samples in the dataset
-N_DATA = sum([len(files) for r, d, files in os.walk(PATH_TO_DATASET)])
+#N_DATA = sum([len(files) for r, d, files in os.walk(PATH_TO_DATASET)])
 
 # Data Generators, used to load data in batches to save memory
 # these are on the format (x, y) with input and expected output
 # They also perform data augmentation on the fly: resize, greyscale, hue-shift, zoom etc.
-data_pair_generator = Generators(C).getDataPairGenerator(PATH_TO_DATASET)
-val_data_pair_generator = Generators(C).getDataPairGenerator(PATH_TO_DATASET)
+#data_pair_generator = Generators(C).getDataPairGenerator(PATH_TO_DATASET)
+#val_data_pair_generator = Generators(C).getDataPairGenerator(PATH_TO_DATASET)
 
 """ MODEL """
 # VAE Instance
@@ -113,7 +114,18 @@ log_losses = CSVLogger(
 
 # Train Model
 # Fit using data from generators
-VAE.combined.fit_generator(
+
+PATH_MNIST_DATA = os.path.join(PATH_TO_DATASET, 'train.csv')
+mnist = pd.read_csv(PATH_MNIST_DATA).values
+
+x_train = mnist[:, 1:].reshape(mnist.shape[0], 784,)
+x_train = x_train.astype(float)
+x_train /= 255.0
+#x_train = x_train[:2000]
+
+VAE.combined.fit(x_train, x_train, batch_size=C.BATCH_SIZE, epochs=C.EPOCHS, verbose=1, callbacks=[latent_space_progress, log_losses])
+
+""" VAE.combined.fit(
   data_pair_generator,
   epochs = C.EPOCHS,
   steps_per_epoch = math.floor(N_DATA/C.BATCH_SIZE),
@@ -130,7 +142,7 @@ VAE.combined.fit_generator(
   use_multiprocessing = False,
   verbose = C.TRAIN_VERBOSITY,
   initial_epoch = C.INIT_EPOCH if C.LOAD_SAVED_WEIGHTS else 0
-)
+) """
 
 # Save model on completion
 if C.SAVE_MODEL_WHEN_DONE:
