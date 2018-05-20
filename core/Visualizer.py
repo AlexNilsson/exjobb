@@ -106,8 +106,6 @@ class Visualizer:
 
     # Resize figure down to img_size (in case it is larger due to tile_size px rounding)
     figure = cv.resize(figure, (img_size, img_size))
-    print('\n\n THE FIGURE:: \n')
-    print(figure)
     figure = self._px_to_display(figure)
 
     return figure

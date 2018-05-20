@@ -6,6 +6,7 @@
 from __future__ import print_function, division
 
 from keras.datasets import mnist
+from keras.callbacks import ModelCheckpoint
 from keras.layers.merge import _Merge
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout
 from keras.layers import BatchNormalization, Activation, ZeroPadding2D
@@ -32,7 +33,7 @@ import config as C
 class RandomWeightedAverage(_Merge):
   """Provides a (random) weighted average between real and generated image samples"""
   def _merge_function(self, inputs):
-    alpha = K.random_uniform((32, 1, 1, 1))
+    alpha = K.random_uniform((C.BATCH_SIZE, 1, 1, 1))
     return (alpha * inputs[0]) + ((1 - alpha) * inputs[1])
 
 class WGANGP():
@@ -64,7 +65,7 @@ class WGANGP():
     real_img = Input(shape=self.img_shape)
 
     # Noise input
-    z_disc = Input(shape=(100,))
+    z_disc = Input(shape=(C.Z_LAYER_SIZE,))
     # Generate image based of noise (fake sample)
     fake_img = self.generator(z_disc)
 
@@ -100,7 +101,7 @@ class WGANGP():
     self.generator.trainable = True
 
     # Sampled noise for input to generator
-    z_gen = Input(shape=(100,))
+    z_gen = Input(shape=(C.Z_LAYER_SIZE,))
     # Generate images based of noise
     img = self.generator(z_gen)
     # Discriminator determines validity
@@ -162,6 +163,11 @@ class WGANGP():
     model.add(BatchNormalization(momentum=0.8))
     model.add(Activation("relu"))
 
+    model.add(UpSampling2D())
+    model.add(Conv2D(128, kernel_size=4, padding="same"))
+    model.add(BatchNormalization(momentum=0.8))
+    model.add(Activation("relu"))
+
     model.add(Conv2D(self.channels, kernel_size=4, padding="same"))
     model.add(Activation("tanh"))
 
@@ -195,12 +201,12 @@ class WGANGP():
     model.add(LeakyReLU(alpha=0.2))
     model.add(Dropout(C.DROPUT_AMOUNT))
 
-    model.add(Conv2D(512, kernel_size=3, strides=1, padding="same"))
+    model.add(Conv2D(512, kernel_size=3, strides=2, padding="same"))
     model.add(BatchNormalization(momentum=0.8))
     model.add(LeakyReLU(alpha=0.2))
     model.add(Dropout(C.DROPUT_AMOUNT))
 
-    model.add(Conv2D(256, kernel_size=3, strides=1, padding="same"))
+    model.add(Conv2D(256, kernel_size=3, strides=2, padding="same"))
     model.add(BatchNormalization(momentum=0.8))
     model.add(LeakyReLU(alpha=0.2))
     model.add(Dropout(C.DROPUT_AMOUNT))
@@ -257,6 +263,10 @@ class WGANGP():
       # Plot the progress
       print ("%d [D loss: %f] [G loss: %f]" % (epoch, d_loss[0], g_loss))
 
+      if epoch % 100 == 0:
+        self.generator_model.save_weights(os.path.join(self.PATH_TO_THIS_DIR,'generator_weights.h5'))
+        self.critic_model.save_weights(os.path.join(self.PATH_TO_THIS_DIR,'critic_weights.h5'))
+
       # If at save interval => save generated image samples
       if epoch % sample_interval == 0:
           self.sample_images(epoch)
@@ -266,7 +276,7 @@ class WGANGP():
     noise = np.random.normal(0, 1, (r * c, self.latent_dim))
     #gen_imgs = self.generator.predict(noise)
 
-    figure = self.visualizer.getLatentSpaceGrid(self.generator, noise)
+    figure = self.visualizer.getLatentSpaceGrid(self.generator, noise, img_size=1280)
     file_path = os.path.join(self.PATH_TO_THIS_DIR, 'images', 'mnist_{}.jpg'.format(epoch))
     cv.imwrite(file_path, figure)
 
@@ -287,4 +297,4 @@ class WGANGP():
 
 if __name__ == '__main__':
   wgan = WGANGP()
-  wgan.train(epochs=30000, batch_size=32, sample_interval=10)
+  wgan.train(epochs=C.EPOCHS, batch_size=C.BATCH_SIZE, sample_interval=C.PLOT_LATENT_SPACE_EVERY)

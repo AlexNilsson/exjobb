@@ -4,7 +4,7 @@ LOAD_FROM_DIRECTORY = 'out/2018-04-20--13-10--model'
 
 """ Data """
 DATASET = 'windows'
-IMG_SIZE = 128 # 320 # must be dividable by 8
+IMG_SIZE = 256 # 320 # must be dividable by 8
 COLOR_MODE = 'rgb' # 'grayscale' or 'rgb'
 
 """ Data Augmentation """
@@ -19,7 +19,7 @@ DROPUT_AMOUNT = 0.25
 NOISE_FACTOR = 0
 
 """ Training """
-BATCH_SIZE = 32 # the trainingset must be dividable with batches_size
+BATCH_SIZE = 16 # the trainingset must be dividable with batches_size
 EPOCHS = 1000000
 N_TRAIN_CRITIC = 5
 GRADIENT_PENALTY_WEIGHT = 10
